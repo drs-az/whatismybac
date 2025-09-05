@@ -21,7 +21,14 @@
   .drink-log{ font-size:32px; line-height:1; min-height:40px; min-width:0; width:100%; }
   button.drink{ background:#1e1e24; border:1px solid #34333b; color:var(--ink); padding:10px 14px; border-radius:14px; cursor:pointer; display:flex; gap:8px; align-items:center; font-weight:600; }
   button.drink:hover{border-color:#484751; background:#26262d}
-  .controls{display:flex; gap:12px; flex-wrap:wrap}
+  .controls{display:grid; gap:12px; grid-template-columns:repeat(4,1fr)}
+  .controls .btn{width:100%}
+  .modal{position:fixed; inset:0; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center; z-index:100}
+  .modal.hide{display:none}
+  .modal-content{background:var(--panel); padding:24px; border-radius:20px; text-align:center; max-width:90%; width:360px}
+  .modal-content img{max-width:100px; margin-bottom:16px}
+  .modal-content h2{margin-top:0}
+  .modal-content .btn{width:100%}
   .card{background:#141319; border:1px solid #2e2d33; border-radius:20px; padding:16px}
   .row{display:flex; align-items:center; justify-content:space-between}
   .big{font-size:32px; font-weight:800} .danger{color:var(--danger)}
@@ -94,11 +101,12 @@
       </div>
       <div class="row"><div>Session time</div><div id="sessionClock" class="mono">0:00:00</div></div>
 
-      <div class="controls" style="margin:10px 0 6px">
-        <button id="startBtn" class="btn">Start session</button>
-        <button id="endBtn" class="btn" disabled>End session</button>
-        <button id="shareBtn" class="btn" disabled>Share badge</button>
-      </div>
+        <div class="controls" style="margin:10px 0 6px">
+          <button id="startBtn" class="btn">Start session</button>
+          <button id="endBtn" class="btn" disabled>End session</button>
+          <button id="shareBtn" class="btn" disabled>Share badge</button>
+          <button id="uberBtn" class="btn">Call Uber</button>
+        </div>
 
       <hr style="border:0;border-top:1px solid #2b2a31;margin:10px 0">
 
@@ -120,12 +128,21 @@
   <div id="toast" class="toast"></div>
 </div>
 
+<div id="welcomeModal" class="modal hide">
+  <div class="modal-content">
+    <img src="iconbb.png" alt="Bar Buddy logo" />
+    <h2>Welcome to Bar Buddy</h2>
+    <p>Track your drinks and estimate your BAC in real time. Please drink responsibly.</p>
+    <button id="installBtn" class="btn" disabled>Install</button>
+  </div>
+</div>
+
 <script>
 const $ = (s) => document.querySelector(s);
 const els = {
   weight: $('#weight'), units: $('#units'), sex: $('#sex'), rWrap: $('#rWrap'),
   rval: $('#rval'), beta: $('#beta'),
-  startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), scene: $('.scene'), drinkLog: $('#drinkLog'),
+    startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), uberBtn: $('#uberBtn'), scene: $('.scene'), drinkLog: $('#drinkLog'),
   sessionState: $('#sessionState'), sessionClock: $('#sessionClock'),
     bac: $('#bac'), peak: $('#peak'), stdDrinks: $('#stdDrinks'), elapsed: $('#elapsed'), eta50: $('#eta50'), eta00: $('#eta00'),
     drinkLog: $('#drinkLog'),
@@ -260,6 +277,15 @@ els.endBtn.addEventListener('click', async ()=>{
 els.shareBtn.addEventListener('click', async ()=>{
   try{ recalc(); const png=await buildBadgePNG(); await tryShareBadge(png); }catch{}
 });
+els.uberBtn.addEventListener('click', ()=>{
+  const appUrl='uber://';
+  const fallbackUrl='https://www.uber.com/us/en/download/';
+  const start=Date.now();
+  window.location.href=appUrl;
+  setTimeout(()=>{
+    if(Date.now()-start<1500){ window.location.href=fallbackUrl; }
+  },1000);
+});
 els.sex.addEventListener('change', ()=>{ els.rWrap.style.display=(els.sex.value==='c')?'grid':'none'; storePrefs(); recalc(); });
 [els.weight, els.units, els.rval, els.beta].forEach(i=> i.addEventListener('input', ()=>{ storePrefs(); recalc(); }));
 
@@ -303,11 +329,20 @@ async function tryShareBadge(pngBlob){
 }
 </script>
 <script>
-// Add install button and PWA plumbing
+// Modal welcome + install prompt
 let deferredPrompt=null;
-const installBtn=document.createElement('button'); installBtn.textContent='Install'; installBtn.className='btn'; installBtn.style.position='fixed'; installBtn.style.right='16px'; installBtn.style.bottom='16px'; installBtn.style.zIndex='20'; installBtn.hidden=true; document.body.appendChild(installBtn);
-window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault(); deferredPrompt=e; installBtn.hidden=false;});
-installBtn.addEventListener('click', async ()=>{ if(!deferredPrompt) return; installBtn.hidden=true; deferredPrompt.prompt(); try{await deferredPrompt.userChoice;}catch{} deferredPrompt=null; });
+const modal=document.getElementById('welcomeModal');
+const installBtn=document.getElementById('installBtn');
+window.addEventListener('load',()=>{ modal.classList.remove('hide'); });
+window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); deferredPrompt=e; installBtn.disabled=false; });
+installBtn.addEventListener('click', async ()=>{
+  if(!deferredPrompt){ modal.classList.add('hide'); return; }
+  deferredPrompt.prompt();
+  try{ await deferredPrompt.userChoice; }catch{}
+  deferredPrompt=null;
+  modal.classList.add('hide');
+});
+modal.addEventListener('click', (e)=>{ if(e.target===modal) modal.classList.add('hide'); });
 
 (async function injectManifestAndIcons(){
   const icon192=await drawIcon(192), icon512=await drawIcon(512);
