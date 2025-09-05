@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#18181d" />
 <title>Bar Buddy — BAC Estimator (Stable)</title>
 <style>
-  :root{ --bg:#0d0d10; --panel:#18181d; --ink:#f5f5f7; --muted:#a5a5aa; --bar:#262530; --bar-edge:#3e3d4a; --accent:#ffb347; --danger:#ff6b6b; }
+  :root{ --bg:#0d0d10; --panel:#18181d; --ink:#f5f5f7; --muted:#a5a5aa; --accent:#ffb347; --danger:#ff6b6b; }
   *{box-sizing:border-box} html,body{height:100%}
   body{ margin:0; background:radial-gradient(1000px 1000px at 50% -200px,#27262b 0,var(--bg) 70%); color:var(--ink);
         font:400 16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding:24px; }
@@ -14,11 +14,9 @@
   header{display:flex; align-items:center; justify-content:space-between; gap:12px}
   h1{margin:0; font-size:24px; font-weight:700} .muted{color:var(--muted)}
   .grid{display:grid; gap:16px; grid-template-columns:1fr} @media (min-width:780px){ .grid{grid-template-columns:1fr 1fr} }
-  .scene{position:relative; min-height:280px; border-radius:20px; background:linear-gradient(#1d1c20, #141316 55%, #121215 55%); border:1px solid #2e2d33; padding:16px; padding-bottom:calc(46% + 16px); display:flex; flex-direction:column; gap:16px}
-  .bar{ position:absolute; left:0; right:0; bottom:0; height:46%; background:linear-gradient(#3a3244, #262530);
-        border-top:3px solid var(--bar-edge); box-shadow: inset 0 12px 18px rgba(0,0,0,.35); }
+  .scene{position:relative; min-height:280px; border-radius:20px; background:linear-gradient(#1d1c20, #141316 55%, #121215 55%); border:1px solid #2e2d33; padding:16px; display:flex; flex-direction:column; gap:16px}
   .drinks{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; }
-  .drink-log{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; font-size:32px; min-height:40px; }
+  .drink-log{ display:block; white-space:nowrap; overflow-x:auto; font-size:32px; min-height:40px; min-width:0; width:100%; }
   button.drink{ background:#1e1e24; border:1px solid #34333b; color:var(--ink); padding:10px 14px; border-radius:14px; cursor:pointer; display:flex; gap:8px; align-items:center; font-weight:600; }
   button.drink:hover{border-color:#484751; background:#26262d}
   .controls{display:flex; gap:12px; flex-wrap:wrap}
@@ -58,8 +56,7 @@
           <button class="drink" data-std="1.33" data-name="Cocktail">🍸 Cocktail</button>
           <button class="drink" data-std="1" data-name="Seltzer">🥂 Hard Seltzer</button>
         </div>
-        <div id="drinkLog" class="drink-log"></div>
-        <div class="bar"></div>
+          <div id="drinkLog" class="drink-log"></div>
       </section>
       <section class="card">
       <div class="two">
@@ -146,7 +143,7 @@ function fmtHM(ms){ if(ms<=0) return '0:00'; const m=Math.round(ms/60000); const
 function fmtEta(hrs){ if(!isFinite(hrs)||hrs<=0) return 'Now'; const ms=hrs*3600000, when=new Date(Date.now()+ms); return `${fmtHM(ms)} (≈ ${when.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})})`; }
 
 function renderDrinkLog(){
-  els.drinkLog.innerHTML = DRINKS.map(d=>d.icon).join('');
+  els.drinkLog.innerHTML = DRINKS.map(d=>d.icon).join(' ');
 }
 
 function storePrefs(){ localStorage.setItem('bb_prefs', JSON.stringify({ w: els.weight.value, u: els.units.value, s: els.sex.value, r: els.rval.value, b: els.beta.value })); }
