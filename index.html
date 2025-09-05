@@ -104,7 +104,7 @@
         <div class="controls" style="margin:10px 0 6px">
           <button id="startBtn" class="btn">Start session</button>
           <button id="endBtn" class="btn" disabled>End session</button>
-          <button id="shareBtn" class="btn" disabled>Share badge</button>
+          <button id="shareBtn" class="btn">Share Bar Buddy</button>
           <button id="uberBtn" class="btn">Call Uber</button>
         </div>
 
@@ -137,6 +137,16 @@
   </div>
 </div>
 
+<div id="shareModal" class="modal hide" tabindex="-1">
+  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+    <h2 id="shareTitle">Share Bar Buddy</h2>
+    <input id="shareUrl" class="mono" readonly>
+    <button id="copyLinkBtn" class="btn" style="margin-top:8px">Copy link</button>
+    <canvas id="qrCanvas" aria-label="App QR code" width="180" height="180" style="margin-top:16px"></canvas>
+    <button id="closeShare" class="btn" style="margin-top:16px">Close</button>
+  </div>
+</div>
+
 <script>
 const $ = (s) => document.querySelector(s);
 const els = {
@@ -146,7 +156,8 @@ const els = {
   sessionState: $('#sessionState'), sessionClock: $('#sessionClock'),
     bac: $('#bac'), peak: $('#peak'), stdDrinks: $('#stdDrinks'), elapsed: $('#elapsed'), eta50: $('#eta50'), eta00: $('#eta00'),
     drinkLog: $('#drinkLog'),
-  toast: $('#toast')
+  toast: $('#toast'),
+  shareModal: $('#shareModal'), shareUrl: $('#shareUrl'), copyLinkBtn: $('#copyLinkBtn'), qrCanvas: $('#qrCanvas'), closeShare: $('#closeShare')
 };
 const DRINKS = []; const STD_FL_OZ = 0.6; const ICONS={Beer:'🍺', Pint:'🍺', Wine:'🍷', Shot:'🥃', Cocktail:'🍸', Seltzer:'🥂'};
 function renderLog(){ els.drinkLog.innerHTML=''; for(const d of DRINKS){ const span=document.createElement('span'); span.textContent=ICONS[d.name]||'🍹'; els.drinkLog.appendChild(span);} }
@@ -168,7 +179,41 @@ function renderDrinkLog(){
 function storePrefs(){ localStorage.setItem('bb_prefs', JSON.stringify({ w: els.weight.value, u: els.units.value, s: els.sex.value, r: els.rval.value, b: els.beta.value })); }
 function restorePrefs(){ try{ const j=JSON.parse(localStorage.getItem('bb_prefs')||'{}'); if(j.w) els.weight.value=j.w; if(j.u) els.units.value=j.u; if(j.s) els.sex.value=j.s; if(j.r) els.rval.value=j.r; if(j.b) els.beta.value=j.b; els.rWrap.style.display=(els.sex.value==='c')?'grid':'none'; }catch{} }
 function saveSession(){ localStorage.setItem('bb_session', JSON.stringify({ started: session.started, t0: session.t0, peak: session.peak, drinks: DRINKS })); }
-function restoreSession(){ try{ const j=JSON.parse(localStorage.getItem('bb_session')||'{}'); if(j && j.started){ session.started = true; session.t0 = j.t0; session.peak = j.peak||0; DRINKS.splice(0, DRINKS.length, ...(j.drinks||[])); renderDrinkLog(); els.sessionState.textContent = 'Running'; els.endBtn.disabled=false; els.startBtn.disabled=true; startClock(); startRecalc(); } }catch{} }
+function restoreSession(){
+  try{
+    const j=JSON.parse(localStorage.getItem('bb_session')||'{}');
+    if(j && j.started){
+      session.started = true;
+      session.t0 = j.t0;
+      session.peak = j.peak||0;
+      DRINKS.splice(0, DRINKS.length, ...(j.drinks||[]));
+      renderDrinkLog();
+      els.sessionState.textContent = 'Running';
+      els.endBtn.disabled=false;
+      els.startBtn.disabled=true;
+      startClock(); startRecalc();
+    }
+  }catch{}
+  els.shareBtn.disabled=session.started;
+}
+async function shareApp(){
+  const url=window.location.href;
+  if(navigator.share){
+    try{ await navigator.share({title:'Bar Buddy', url}); }catch{}
+  }else{
+    els.shareUrl.value=url;
+    try{ await generateQR(url); }catch{}
+    els.shareModal.classList.remove('hide');
+    els.shareUrl.focus();
+  }
+}
+async function generateQR(text){
+  if(!els.qrCanvas) return;
+  if(!window.QRCode){
+    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  }
+  return new Promise((res,rej)=>{ window.QRCode.toCanvas(els.qrCanvas, text, {width:180}, e=> e?rej(e):res()); });
+}
 function bacNow(){
   if(DRINKS.length===0) return 0;
   const now = Date.now();
@@ -272,11 +317,15 @@ els.endBtn.addEventListener('click', async ()=>{
   els.sessionState.textContent='Ended';
   els.endBtn.disabled=true; els.startBtn.disabled=false; els.shareBtn.disabled=false;
   saveSession(); recalc();
-  try{ const png=await buildBadgePNG(); await tryShareBadge(png); }catch{}
+  await shareApp();
 });
-els.shareBtn.addEventListener('click', async ()=>{
-  try{ recalc(); const png=await buildBadgePNG(); await tryShareBadge(png); }catch{}
+els.shareBtn.addEventListener('click', shareApp);
+els.copyLinkBtn.addEventListener('click', async ()=>{
+  try{ await navigator.clipboard.writeText(els.shareUrl.value); toast('Link copied!'); }catch{}
 });
+els.closeShare.addEventListener('click', ()=> els.shareModal.classList.add('hide'));
+els.shareModal.addEventListener('click', e=>{ if(e.target===els.shareModal) els.shareModal.classList.add('hide'); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !els.shareModal.classList.contains('hide')) els.shareModal.classList.add('hide'); });
 els.uberBtn.addEventListener('click', ()=>{
   const appUrl='uber://';
   const fallbackUrl='https://www.uber.com/us/en/download/';
@@ -291,41 +340,6 @@ els.sex.addEventListener('change', ()=>{ els.rWrap.style.display=(els.sex.value=
 
 restorePrefs(); restoreSession(); recalc(); renderDrinkLog();
 
-async function buildBadgePNG(){
-  const w=1200, h=630;
-  const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d');
-  const g=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,h); g.addColorStop(0,'#2a262c'); g.addColorStop(1,'#0b0b0c'); ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
-  const pad=60, X=pad, Y=pad, W=w-pad*2, H=h-pad*2;
-  roundRect(ctx,X,Y,W,H,32); const pg=ctx.createLinearGradient(0,Y,0,Y+H); pg.addColorStop(0,'#1c1b20'); pg.addColorStop(1,'#141318'); ctx.fillStyle=pg; ctx.fill(); ctx.strokeStyle='#2f2d35'; ctx.lineWidth=2; ctx.stroke();
-  ctx.textAlign='center';
-  ctx.fillStyle='#ffd26b'; ctx.font='700 58px system-ui, Segoe UI, Roboto'; ctx.fillText('Bar Buddy Session', w/2, Y+80);
-  let idx=0; const drawers={'Beer':drawEmptyBeer,'Pint':drawEmptyBeer,'Wine':drawEmptyWine,'Shot':drawEmptyShot,'Cocktail':drawEmptyMartini,'Seltzer':drawEmptyWine};
-  const maxIcons=Math.min(DRINKS.length,8); const iconSize=48; const startX=w/2-((maxIcons-1)*iconSize*1.2)/2;
-  for(const d of DRINKS.slice(0,maxIcons)){ const cx=startX+idx*iconSize*1.2; const cy=Y+140; (drawers[d.name]||drawEmptyShot)(ctx,cx,cy,iconSize/2); idx++; }
-  const contribs=activeContribs();
-  const b=contribs.reduce((s,d)=>s+d.b,0); const peak=session.peak||0;
-  ctx.fillStyle='#f5f5f7'; ctx.font='800 150px system-ui, Segoe UI, Roboto'; ctx.fillText(b.toFixed(3), w/2, Y+H/2+30);
-  ctx.fillStyle='#ffd26b'; ctx.font='600 36px system-ui, Segoe UI, Roboto';
-  const eta50=b<=0.05?'Now':timeIn(etaFrom(contribs,0.05)); const eta00=b<=0?'Now':timeIn(etaFrom(contribs,0));
-  const totalStd = DRINKS.reduce((s,d)=>s+d.std,0);
-  let y=Y+H-120; ctx.fillText(`Std drinks: ${totalStd.toFixed(2)}`, w/2, y); y+=44; ctx.fillText(`Peak: ${peak.toFixed(3)}  ETA <0.05: ${eta50}`, w/2, y); y+=44; ctx.fillText(`ETA 0.00: ${eta00}`, w/2, y);
-  const blob=await new Promise(res=>c.toBlob(res,'image/png')); if(blob) return blob;
-  const dataURL=c.toDataURL('image/png'); const bstr=atob(dataURL.split(',')[1]); let n=bstr.length; const u8=new Uint8Array(n); while(n--) u8[n]=bstr.charCodeAt(n); return new Blob([u8], {type:'image/png'});
-  function timeIn(hrs){ const ms=hrs*3600000; const when=new Date(Date.now()+ms); return `${fmtHM(ms)} (≈ ${when.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})})`; }
-}
-function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
-function drawEmptyBeer(ctx, cx, cy, s){ctx.save();ctx.translate(cx,cy);ctx.strokeStyle='#c8c0b8';ctx.lineWidth=3;ctx.lineJoin='round';ctx.fillStyle='rgba(200,192,184,0.08)';ctx.beginPath();ctx.moveTo(-s*0.28,-s*0.6);ctx.lineTo(-s*0.28,s*0.4);ctx.lineTo(s*0.28,s*0.4);ctx.lineTo(s*0.28,-s*0.6);ctx.closePath();ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(s*0.4,-s*0.1,s*0.22,-Math.PI/2,Math.PI/2);ctx.stroke();ctx.restore();}
-function drawEmptyWine(ctx, cx, cy, s){ctx.save();ctx.translate(cx,cy);ctx.strokeStyle='#c8c0b8';ctx.lineWidth=3;ctx.fillStyle='rgba(200,192,184,0.08)';ctx.beginPath();ctx.ellipse(0,-s*0.15,s*0.26,s*0.33,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(0,s*0.15);ctx.lineTo(0,s*0.42);ctx.moveTo(-s*0.22,s*0.42);ctx.lineTo(s*0.22,s*0.42);ctx.stroke();ctx.restore();}
-function drawEmptyShot(ctx, cx, cy, s){ctx.save();ctx.translate(cx,cy);ctx.strokeStyle='#c8c0b8';ctx.lineWidth=3;ctx.fillStyle='rgba(200,192,184,0.08)';ctx.beginPath();ctx.moveTo(-s*0.2,-s*0.45);ctx.lineTo(-s*0.28,s*0.35);ctx.lineTo(s*0.28,s*0.35);ctx.lineTo(s*0.2,-s*0.45);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();}
-function drawEmptyMartini(ctx, cx, cy, s){ctx.save();ctx.translate(cx,cy);ctx.strokeStyle='#c8c0b8';ctx.lineWidth=3;ctx.fillStyle='rgba(200,192,184,0.08)';ctx.beginPath();ctx.moveTo(-s*0.45,-s*0.4);ctx.lineTo(0,s*0.05);ctx.lineTo(s*0.45,-s*0.4);ctx.lineTo(-s*0.45,-s*0.4);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(0,s*0.05);ctx.lineTo(0,s*0.45);ctx.moveTo(-s*0.18,s*0.45);ctx.lineTo(s*0.18,s*0.45);ctx.stroke();ctx.restore();}
-
-async function tryShareBadge(pngBlob){
-  const file = new File([pngBlob], 'bar-buddy-badge.png', {type:'image/png'});
-  if(navigator.canShare && navigator.canShare({files:[file]})){
-    await navigator.share({title:'Bar Buddy — Session Badge', text:'My Bar Buddy session (educational estimate only).', files:[file]}).catch(()=>{});
-  }else{
-    const a=document.createElement('a'); a.href=URL.createObjectURL(pngBlob); a.download='bar-buddy-badge.png'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1500); toast('Badge downloaded.');
-  }
 }
 </script>
 <script>
