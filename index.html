@@ -21,7 +21,7 @@
   .drink-log{ font-size:32px; line-height:1; min-height:40px; min-width:0; width:100%; }
   button.drink{ background:#1e1e24; border:1px solid #34333b; color:var(--ink); padding:10px 14px; border-radius:14px; cursor:pointer; display:flex; gap:8px; align-items:center; font-weight:600; }
   button.drink:hover{border-color:#484751; background:#26262d}
-  .controls{display:grid; gap:12px; grid-template-columns:repeat(4,1fr)}
+  .controls{display:grid; gap:12px; grid-template-columns:repeat(2,1fr)}
   .controls .btn{width:100%}
   .modal{position:fixed; inset:0; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center; z-index:100}
   .modal.hide{display:none}
@@ -333,7 +333,10 @@ async function tryShareBadge(pngBlob){
 let deferredPrompt=null;
 const modal=document.getElementById('welcomeModal');
 const installBtn=document.getElementById('installBtn');
-window.addEventListener('load',()=>{ modal.classList.remove('hide'); });
+window.addEventListener('load',()=>{
+  const installed=localStorage.getItem('pwaInstalled')==='1'||window.matchMedia('(display-mode: standalone)').matches;
+  if(!installed){ modal.classList.remove('hide'); }
+});
 window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); deferredPrompt=e; installBtn.disabled=false; });
 installBtn.addEventListener('click', async ()=>{
   if(!deferredPrompt){ modal.classList.add('hide'); return; }
@@ -343,6 +346,8 @@ installBtn.addEventListener('click', async ()=>{
   modal.classList.add('hide');
 });
 modal.addEventListener('click', (e)=>{ if(e.target===modal) modal.classList.add('hide'); });
+window.addEventListener('appinstalled',()=>{ localStorage.setItem('pwaInstalled','1'); });
+
 
 (async function injectManifestAndIcons(){
   const icon192=await drawIcon(192), icon512=await drawIcon(512);
