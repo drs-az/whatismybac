@@ -25,10 +25,12 @@
   .controls .btn{width:100%}
   .modal{position:fixed; inset:0; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center; z-index:100}
   .modal.hide{display:none}
-  .modal-content{background:var(--panel); padding:24px; border-radius:20px; text-align:center; max-width:90%; width:360px}
-  .modal-content img{max-width:100px; margin-bottom:16px}
-  .modal-content h2{margin-top:0}
-  .modal-content .btn{width:100%}
+    .modal-content{background:var(--panel); padding:24px; border-radius:20px; text-align:center; max-width:90%; width:360px}
+    .modal-content img{max-width:100px; margin-bottom:16px}
+    .modal-content h2{margin-top:0}
+    .modal-content .btn{width:100%}
+    #sessionModal .snapshot-wrap{padding:16px}
+    #sessionSnapshot{display:block;width:100%;height:auto;border-radius:12px}
   .card{background:#141319; border:1px solid #2e2d33; border-radius:20px; padding:16px}
   .row{display:flex; align-items:center; justify-content:space-between}
   .big{font-size:32px; font-weight:800} .danger{color:var(--danger)}
@@ -148,6 +150,16 @@
   </div>
 </div>
 
+<div id="sessionModal" class="modal hide" tabindex="-1">
+  <div class="modal-content" role="dialog" aria-modal="true">
+    <div class="snapshot-wrap">
+      <canvas id="sessionSnapshot" width="320" height="220" aria-label="Session snapshot"></canvas>
+    </div>
+    <button id="shareSessionBtn" class="btn" style="margin-top:8px">Share snapshot</button>
+    <button id="closeSessionBtn" class="btn" style="margin-top:8px">Close</button>
+  </div>
+</div>
+
 <script>
 const $ = (s) => document.querySelector(s);
 const els = {
@@ -159,6 +171,7 @@ const els = {
     drinkLog: $('#drinkLog'),
   toast: $('#toast'),
   shareModal: $('#shareModal'), shareUrl: $('#shareUrl'), copyLinkBtn: $('#copyLinkBtn'), shareLinkBtn: $('#shareLinkBtn'), qrImg: $('#qrImg'), closeShare: $('#closeShare')
+  , sessionModal: $('#sessionModal'), sessionSnap: $('#sessionSnapshot'), shareSessionBtn: $('#shareSessionBtn'), closeSessionBtn: $('#closeSessionBtn')
 };
 const DRINKS = []; const STD_FL_OZ = 0.6; const ICONS={Beer:'🍺', Pint:'🍺', Wine:'🍷', Shot:'🥃', Cocktail:'🍸', Seltzer:'🥂'};
 function renderLog(){ els.drinkLog.innerHTML=''; for(const d of DRINKS){ const span=document.createElement('span'); span.textContent=ICONS[d.name]||'🍹'; els.drinkLog.appendChild(span);} }
@@ -226,6 +239,69 @@ function generateQR(text){
   if(!els.qrImg) return;
   els.qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(text);
 }
+
+function drawSessionSnapshot(){
+  const canvas=els.sessionSnap; if(!canvas) return;
+  const w=canvas.width, pad=16;
+  const iconSize=24, iconGap=4;
+  const iconsPerRow=Math.max(1, Math.floor((w-pad*2)/iconSize));
+  const rows=Math.max(1, Math.ceil(DRINKS.length/iconsPerRow));
+  const iconsStartY=pad+50;
+  const iconsBlockHeight=rows*(iconSize+iconGap);
+  const afterIconsY=iconsStartY+iconsBlockHeight;
+  canvas.height=afterIconsY+pad+120;
+  const h=canvas.height;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#18181d';
+  ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='#2e2d33';
+  ctx.lineWidth=2; ctx.strokeRect(0,0,w,h);
+  ctx.fillStyle='#f5f5f7';
+  ctx.textAlign='center';
+  ctx.font='20px system-ui';
+  ctx.fillText('Bar Buddy Session', w/2, pad+20);
+  ctx.font='24px serif';
+  for(let i=0;i<DRINKS.length;i++){
+    const row=Math.floor(i/iconsPerRow);
+    const col=i%iconsPerRow;
+    const rowIcons=Math.min(iconsPerRow, DRINKS.length-row*iconsPerRow);
+    const rowWidth=rowIcons*iconSize;
+    const xStart=(w-rowWidth)/2+iconSize/2;
+    const x=xStart+col*iconSize;
+    const y=iconsStartY+row*(iconSize+iconGap);
+    ctx.fillText(DRINKS[i].icon,x,y);
+  }
+  ctx.font='56px system-ui';
+  ctx.fillText(els.bac.textContent, w/2, afterIconsY+40);
+  ctx.font='18px system-ui';
+  ctx.fillText(`Drinks: ${DRINKS.length}`, w/2, afterIconsY+70);
+  ctx.textAlign='left';
+  ctx.font='14px system-ui';
+  ctx.fillText(`Peak: ${els.peak.textContent} ETA <0.05: ${els.eta50.textContent}`, pad, afterIconsY+100);
+  ctx.fillText(`ETA 0.00: ${els.eta00.textContent}`, pad, afterIconsY+120);
+}
+
+async function shareSessionSnapshot(){
+  try{
+    const blob=await new Promise(res=>els.sessionSnap.toBlob(res));
+    if(!blob) return;
+    const file=new File([blob],'barbuddy-session.png',{type:'image/png'});
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:'Bar Buddy Session'});
+    }else{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='barbuddy-session.png'; a.click();
+      URL.revokeObjectURL(url);
+    }
+  }catch{}
+}
+
+function showSessionModal(){
+  drawSessionSnapshot();
+  els.sessionModal.classList.remove('hide');
+}
+
 function bacNow(){
   if(DRINKS.length===0) return 0;
   const now = Date.now();
@@ -330,6 +406,7 @@ els.endBtn.addEventListener('click', ()=>{
   els.endBtn.disabled=true; els.startBtn.disabled=false; els.shareBtn.disabled=false;
   saveSession(); recalc();
   toast('Session ended');
+  showSessionModal();
 });
 els.shareBtn.addEventListener('click', shareApp);
 els.copyLinkBtn.addEventListener('click', async ()=>{
@@ -338,7 +415,15 @@ els.copyLinkBtn.addEventListener('click', async ()=>{
 els.shareLinkBtn.addEventListener('click', shareLink);
 els.closeShare.addEventListener('click', ()=> els.shareModal.classList.add('hide'));
 els.shareModal.addEventListener('click', e=>{ if(e.target===els.shareModal) els.shareModal.classList.add('hide'); });
-document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !els.shareModal.classList.contains('hide')) els.shareModal.classList.add('hide'); });
+els.shareSessionBtn.addEventListener('click', shareSessionSnapshot);
+els.closeSessionBtn.addEventListener('click', ()=> els.sessionModal.classList.add('hide'));
+els.sessionModal.addEventListener('click', e=>{ if(e.target===els.sessionModal) els.sessionModal.classList.add('hide'); });
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){
+    if(!els.shareModal.classList.contains('hide')) els.shareModal.classList.add('hide');
+    if(!els.sessionModal.classList.contains('hide')) els.sessionModal.classList.add('hide');
+  }
+});
 els.uberBtn.addEventListener('click', ()=>{
   const appUrl='uber://';
   const fallbackUrl='https://www.uber.com/us/en/download/';
