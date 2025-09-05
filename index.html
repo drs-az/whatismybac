@@ -145,26 +145,64 @@ function restorePrefs(){ try{ const j=JSON.parse(localStorage.getItem('bb_prefs'
 function saveSession(){ localStorage.setItem('bb_session', JSON.stringify({ started: session.started, t0: session.t0, peak: session.peak, drinks: DRINKS })); }
 function restoreSession(){ try{ const j=JSON.parse(localStorage.getItem('bb_session')||'{}'); if(j && j.started){ session.started = true; session.t0 = j.t0; session.peak = j.peak||0; DRINKS.splice(0, DRINKS.length, ...(j.drinks||[])); els.sessionState.textContent = 'Running'; els.endBtn.disabled=false; els.startBtn.disabled=true; startClock(); startRecalc(); } }catch{} }
 
-function totalStdDrinks(){ return DRINKS.reduce((s,d)=>s+d.std,0); }
 function bacNow(){
   if(DRINKS.length===0) return 0;
   const now = Date.now();
   const W = Math.max(80, lbs());
   const r = rConst();
-  const total = totalStdDrinks();
-  const A = total * STD_FL_OZ;
-  const hrs = (now - DRINKS[0].t)/3600000;
-  const b = (A * 5.14 / (W * r)) - beta()*hrs;
-  return Math.max(0, b);
+  const bRate = beta();
+  let total = 0;
+  for(const d of DRINKS){
+    const A = d.std * STD_FL_OZ;
+    const hrs = (now - d.t)/3600000;
+    const contrib = (A * 5.14 / (W * r)) - bRate*hrs;
+    if(contrib>0) total += contrib;
+  }
+  return total;
+}
+function activeContribs(){
+  const now = Date.now();
+  const W = Math.max(80, lbs());
+  const r = rConst();
+  const bRate = beta();
+  const arr=[];
+  for(const d of DRINKS){
+    const A = d.std * STD_FL_OZ;
+    const hrs = (now - d.t)/3600000;
+    const contrib = (A * 5.14 / (W * r)) - bRate*hrs;
+    if(contrib>0) arr.push({b:contrib,t:d.t,rem:contrib/bRate});
+  }
+  return arr;
+}
+function etaFrom(contribs, target){
+  const bRate = beta();
+  if(contribs.length===0) return 0;
+  const arr=[...contribs].sort((a,b)=>a.rem-b.rem);
+  let total = arr.reduce((s,d)=>s+d.b,0);
+  let prev = 0;
+  let active = arr.length;
+  for(const c of arr){
+    const dt = c.rem - prev;
+    if(total - bRate*active*dt <= target){
+      const needed = total - target;
+      return prev + needed/(bRate*active);
+    }
+    total -= bRate*active*dt;
+    prev = c.rem;
+    active--;
+  }
+  return prev;
 }
 function recalc(){
-  const b=bacNow();
+  const contribs = activeContribs();
+  const b = contribs.reduce((s,d)=>s+d.b,0);
   session.peak=Math.max(session.peak||0,b);
   els.bac.textContent=b.toFixed(3);
   els.peak.textContent=session.peak.toFixed(3);
-  els.elapsed.textContent=DRINKS.length?fmtHM(Date.now()-DRINKS[0].t):'0:00';
-  els.eta50.textContent=b<=0.05?'Now':fmtEta((b-0.05)/beta());
-  els.eta00.textContent=b<=0?'Now':fmtEta(b/beta());
+  const earliest = contribs.length?Math.min(...contribs.map(d=>d.t)):null;
+  els.elapsed.textContent=earliest?fmtHM(Date.now()-earliest):'0:00';
+  els.eta50.textContent=b<=0.05?'Now':fmtEta(etaFrom(contribs,0.05));
+  els.eta00.textContent=b<=0?'Now':fmtEta(etaFrom(contribs,0));
 }
 
 function startClock(){
@@ -231,9 +269,10 @@ async function buildBadgePNG(){
   const drawers={'Beer':drawEmptyBeer,'Wine':drawEmptyWine,'Shot':drawEmptyShot,'Cocktail':drawEmptyMartini,'Seltzer':drawEmptyWine};
   const cellW=(W-56-20)/Math.max(1,Math.min(DRINKS.length||1,10));
   for(const d of DRINKS){ const col=idx%10; row=Math.floor(idx/10); const cx=X+38+col*cellW+cellW/2; const cy=barY+barH-140-row*120; (drawers[d.name]||drawEmptyShot)(ctx,cx,cy,60); idx++; if(row>=2) break; }
-  const b=bacNow(); const peak=session.peak||0;
+  const contribs=activeContribs();
+  const b=contribs.reduce((s,d)=>s+d.b,0); const peak=session.peak||0;
   ctx.fillStyle='#ffd26b'; ctx.font='600 34px system-ui, Segoe UI, Roboto';
-  const eta50=b<=0.05?'Now':timeIn((b-0.05)/beta()); const eta00=b<=0?'Now':timeIn(b/beta());
+  const eta50=b<=0.05?'Now':timeIn(etaFrom(contribs,0.05)); const eta00=b<=0?'Now':timeIn(etaFrom(contribs,0));
   let y=Y+H-70; ctx.fillText(`Drinks: ${DRINKS.length}`, X+34, y); y-=42; ctx.fillText(`Peak BAC: ${peak.toFixed(3)} | Current: ${b.toFixed(3)}`, X+34, y); y-=42; ctx.fillText(`Est. time until < 0.05: ${eta50}`, X+34, y); y-=42; ctx.fillText(`Est. time until 0.00: ${eta00}`, X+34, y);
   const blob=await new Promise(res=>c.toBlob(res,'image/png')); if(blob) return blob;
   const dataURL=c.toDataURL('image/png'); const bstr=atob(dataURL.split(',')[1]); let n=bstr.length; const u8=new Uint8Array(n); while(n--) u8[n]=bstr.charCodeAt(n); return new Blob([u8], {type:'image/png'});
