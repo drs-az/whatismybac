@@ -50,11 +50,12 @@
   <div class="grid">
     <section class="scene">
       <div class="drinks">
-        <button class="drink" data-std="1" data-name="Beer">🍺 Beer</button>
+        <button class="drink" data-std="1" data-name="Beer">🍺 Beer (12&nbsp;oz)</button>
+        <button class="drink" data-std="1.33" data-name="Pint">🍺 Pint (16&nbsp;oz)</button>
         <button class="drink" data-std="1" data-name="Wine">🍷 Wine</button>
         <button class="drink" data-std="1" data-name="Shot">🥃 Shot</button>
-        <button class="drink" data-std="1.25" data-name="Cocktail">🍸 Cocktail</button>
-        <button class="drink" data-std="0.5" data-name="Seltzer">🥂 Seltzer (1/2)</button>
+        <button class="drink" data-std="1.33" data-name="Cocktail">🍸 Cocktail</button>
+        <button class="drink" data-std="1" data-name="Seltzer">🥂 Hard Seltzer</button>
       </div>
       <div class="bar"></div>
     </section>
@@ -263,7 +264,7 @@ async function buildBadgePNG(){
   roundRect(ctx,X,Y,W,H,32); const pg=ctx.createLinearGradient(0,Y,0,Y+H); pg.addColorStop(0,'#1c1b20'); pg.addColorStop(1,'#141318'); ctx.fillStyle=pg; ctx.fill(); ctx.strokeStyle='#2f2d35'; ctx.lineWidth=2; ctx.stroke();
   ctx.textAlign='center';
   ctx.fillStyle='#ffd26b'; ctx.font='700 58px system-ui, Segoe UI, Roboto'; ctx.fillText('Bar Buddy Session', w/2, Y+80);
-  let idx=0; const drawers={'Beer':drawEmptyBeer,'Wine':drawEmptyWine,'Shot':drawEmptyShot,'Cocktail':drawEmptyMartini,'Seltzer':drawEmptyWine};
+  let idx=0; const drawers={'Beer':drawEmptyBeer,'Pint':drawEmptyBeer,'Wine':drawEmptyWine,'Shot':drawEmptyShot,'Cocktail':drawEmptyMartini,'Seltzer':drawEmptyWine};
   const maxIcons=Math.min(DRINKS.length,8); const iconSize=48; const startX=w/2-((maxIcons-1)*iconSize*1.2)/2;
   for(const d of DRINKS.slice(0,maxIcons)){ const cx=startX+idx*iconSize*1.2; const cy=Y+140; (drawers[d.name]||drawEmptyShot)(ctx,cx,cy,iconSize/2); idx++; }
   const contribs=activeContribs();
