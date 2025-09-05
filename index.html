@@ -36,7 +36,8 @@
   .btn:hover{border-color:#3a3a46}
   .pill{padding:6px 10px; border-radius:999px; border:1px solid #323038; font-size:12px}
   .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
-  details.debug{margin-top:8px; color:#b9b9bf} details.debug summary{cursor:pointer}
+  .fun-emoji{position:absolute; animation:pop 1s ease-out forwards; font-size:32px; pointer-events:none}
+  @keyframes pop{from{transform:translateY(0) scale(1);opacity:1}to{transform:translateY(-40px) scale(1.4);opacity:0}}
 </style>
 </head>
 <body>
@@ -110,10 +111,6 @@
         <span class="danger"><b>Never drive after drinking.</b></span>
       </div>
 
-      <details class="debug">
-        <summary>Debug (optional)</summary>
-        <div class="mono" id="dbg"></div>
-      </details>
     </section>
   </div>
 
@@ -126,10 +123,10 @@ const $ = (s) => document.querySelector(s);
 const els = {
   weight: $('#weight'), units: $('#units'), sex: $('#sex'), rWrap: $('#rWrap'),
   rval: $('#rval'), beta: $('#beta'),
-  startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'),
+  startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), scene: $('.scene'),
   sessionState: $('#sessionState'), sessionClock: $('#sessionClock'),
   bac: $('#bac'), peak: $('#peak'), elapsed: $('#elapsed'), eta50: $('#eta50'), eta00: $('#eta00'),
-  toast: $('#toast'), dbg: $('#dbg')
+  toast: $('#toast')
 };
 const DRINKS = []; const STD_FL_OZ = 0.6;
 let session = {started:false, t0:null, tick:null, clockTick:null, peak:0};
@@ -160,7 +157,15 @@ function bacNow(){
   const b = (A * 5.14 / (W * r)) - beta()*hrs;
   return Math.max(0, b);
 }
-function recalc(){ const b=bacNow(); session.peak = Math.max(session.peak||0, b); els.bac.textContent = b.toFixed(3); els.peak.textContent = session.peak.toFixed(3); els.elapsed.textContent = DRINKS.length ? fmtHM(Date.now()-DRINKS[0].t) : '0:00'; els.eta50.textContent = b<=0.05 ? 'Now' : fmtEta((b-0.05)/beta()); els.eta00.textContent = b<=0    ? 'Now' : fmtEta(b/beta()); if(els.dbg && els.dbg.parentElement.open){ const now=Date.now(); const total=totalStdDrinks(); const A=(total*STD_FL_OZ).toFixed(3); els.dbg.textContent = `W(lb)=${lbs().toFixed(1)}  r=${rConst().toFixed(3)}  beta=${beta().toFixed(3)}%/hr\ntotal(std)=${total.toFixed(3)}  A(fl oz ethanol)=${A}\ndrinks=${DRINKS.length}  hours=${DRINKS.length?((now-DRINKS[0].t)/3600000).toFixed(3):'0.000'}\nBAC=${b.toFixed(3)}  peak=${session.peak.toFixed(3)}`; } }
+function recalc(){
+  const b=bacNow();
+  session.peak=Math.max(session.peak||0,b);
+  els.bac.textContent=b.toFixed(3);
+  els.peak.textContent=session.peak.toFixed(3);
+  els.elapsed.textContent=DRINKS.length?fmtHM(Date.now()-DRINKS[0].t):'0:00';
+  els.eta50.textContent=b<=0.05?'Now':fmtEta((b-0.05)/beta());
+  els.eta00.textContent=b<=0?'Now':fmtEta(b/beta());
+}
 
 function startClock(){
   stopClock();
@@ -178,10 +183,35 @@ function stopClock(){ if(session.clockTick) clearInterval(session.clockTick); se
 function startRecalc(){ if(session.tick) clearInterval(session.tick); session.tick = setInterval(recalc, 1000); }
 function stopRecalc(){ if(session.tick) clearInterval(session.tick); session.tick=null; }
 
-document.querySelectorAll('button.drink').forEach(btn=>{ btn.addEventListener('click', ()=>{ if(!session.started){ toast('Start session first'); return; } const std=parseFloat(btn.dataset.std), name=btn.dataset.name; DRINKS.push({name, std, t: Date.now()}); saveSession(); recalc(); toast(`+ ${name} (${std.toFixed(2)} std)`); }); });
+document.querySelectorAll('button.drink').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(!session.started){ toast('Start session first'); return; }
+    const std=parseFloat(btn.dataset.std), name=btn.dataset.name;
+    DRINKS.push({name, std, t: Date.now()});
+    saveSession(); recalc();
+    toast(`+ ${name} (${std.toFixed(2)} std)`);
+    const emoji=document.createElement('div');
+    emoji.className='fun-emoji';
+    emoji.textContent=['🍻','🥂','🍹','🎉'][Math.floor(Math.random()*4)];
+    const r=btn.getBoundingClientRect(), s=els.scene.getBoundingClientRect();
+    emoji.style.left=(r.left - s.left + r.width/2)+'px';
+    emoji.style.top=(r.top - s.top)+'px';
+    els.scene.appendChild(emoji);
+    setTimeout(()=>emoji.remove(),1000);
+  });
+});
 els.startBtn.addEventListener('click', ()=>{ if(session.started) return; session.started=true; session.t0=Date.now(); session.peak=0; DRINKS.length=0; els.sessionState.textContent='Running'; els.endBtn.disabled=false; els.shareBtn.disabled=true; els.startBtn.disabled=true; saveSession(); startClock(); startRecalc(); recalc(); });
-els.endBtn.addEventListener('click', async ()=>{ if(!session.started) return; stopClock(); stopRecalc(); session.started=false; els.sessionState.textContent='Ended'; els.endBtn.disabled=true; els.startBtn.disabled=false; els.shareBtn.disabled=false; saveSession(); try{ const png=await buildBadgePNG(); await tryShareBadge(png); }catch(e){ console.warn(e); } });
-els.shareBtn.addEventListener('click', async ()=>{ try{ const png=await buildBadgePNG(); await tryShareBadge(png); }catch(e){ console.warn(e); } });
+els.endBtn.addEventListener('click', async ()=>{
+  if(!session.started) return;
+  stopClock(); stopRecalc(); session.started=false;
+  els.sessionState.textContent='Ended';
+  els.endBtn.disabled=true; els.startBtn.disabled=false; els.shareBtn.disabled=false;
+  saveSession(); recalc();
+  try{ const png=await buildBadgePNG(); await tryShareBadge(png); }catch{}
+});
+els.shareBtn.addEventListener('click', async ()=>{
+  try{ recalc(); const png=await buildBadgePNG(); await tryShareBadge(png); }catch{}
+});
 els.sex.addEventListener('change', ()=>{ els.rWrap.style.display=(els.sex.value==='c')?'grid':'none'; storePrefs(); recalc(); });
 [els.weight, els.units, els.rval, els.beta].forEach(i=> i.addEventListener('input', ()=>{ storePrefs(); recalc(); }));
 
@@ -250,6 +280,4 @@ function drawIcon(size){ const c=document.createElement('canvas'); c.width=c.hei
 `; const url=URL.createObjectURL(new Blob([swCode],{type:'text/javascript'})); navigator.serviceWorker.register(url).catch(()=>{}); })();
 </script>
 </body>
-</html>
-
 </html>
