@@ -14,13 +14,11 @@
   header{display:flex; align-items:center; justify-content:space-between; gap:12px}
   h1{margin:0; font-size:24px; font-weight:700} .muted{color:var(--muted)}
   .grid{display:grid; gap:16px; grid-template-columns:1fr} @media (min-width:780px){ .grid{grid-template-columns:1fr 1fr} }
-
   .scene{position:relative; min-height:280px; border-radius:20px; background:linear-gradient(#1d1c20, #141316 55%, #121215 55%); border:1px solid #2e2d33; padding:16px; padding-bottom:calc(46% + 16px); display:flex; flex-direction:column; gap:16px}
   .bar{ position:absolute; left:0; right:0; bottom:0; height:46%; background:linear-gradient(#3a3244, #262530);
         border-top:3px solid var(--bar-edge); box-shadow: inset 0 12px 18px rgba(0,0,0,.35); }
   .drinks{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; }
   .drink-log{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; font-size:32px; min-height:40px; }
-
   button.drink{ background:#1e1e24; border:1px solid #34333b; color:var(--ink); padding:10px 14px; border-radius:14px; cursor:pointer; display:flex; gap:8px; align-items:center; font-weight:600; }
   button.drink:hover{border-color:#484751; background:#26262d}
   .controls{display:flex; gap:12px; flex-wrap:wrap}
@@ -60,12 +58,9 @@
           <button class="drink" data-std="1.33" data-name="Cocktail">🍸 Cocktail</button>
           <button class="drink" data-std="1" data-name="Seltzer">🥂 Hard Seltzer</button>
         </div>
-
         <div id="drinkLog" class="drink-log"></div>
         <div class="bar"></div>
       </section>
-
-
       <section class="card">
       <div class="two">
         <label>Weight
@@ -110,6 +105,7 @@
 
       <div class="row"><div>Current BAC</div><div class="big" id="bac">0.000</div></div>
       <div class="row"><div>Peak so far</div><div id="peak">0.000</div></div>
+      <div class="row"><div>Std drinks</div><div id="stdDrinks">0.00</div></div>
       <div class="row"><div>Since first drink</div><div id="elapsed">0:00</div></div>
       <div class="row"><div>ETA &lt; 0.05</div><div id="eta50">—</div></div>
       <div class="row"><div>ETA 0.00</div><div id="eta00">—</div></div>
@@ -132,8 +128,8 @@ const els = {
   rval: $('#rval'), beta: $('#beta'),
   startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), scene: $('.scene'), drinkLog: $('#drinkLog'),
   sessionState: $('#sessionState'), sessionClock: $('#sessionClock'),
-  bac: $('#bac'), peak: $('#peak'), elapsed: $('#elapsed'), eta50: $('#eta50'), eta00: $('#eta00'),
-  drinkLog: $('#drinkLog'),
+    bac: $('#bac'), peak: $('#peak'), stdDrinks: $('#stdDrinks'), elapsed: $('#elapsed'), eta50: $('#eta50'), eta00: $('#eta00'),
+    drinkLog: $('#drinkLog'),
   toast: $('#toast')
 };
 const DRINKS = []; const STD_FL_OZ = 0.6; const ICONS={Beer:'🍺', Pint:'🍺', Wine:'🍷', Shot:'🥃', Cocktail:'🍸', Seltzer:'🥂'};
@@ -156,10 +152,7 @@ function renderDrinkLog(){
 function storePrefs(){ localStorage.setItem('bb_prefs', JSON.stringify({ w: els.weight.value, u: els.units.value, s: els.sex.value, r: els.rval.value, b: els.beta.value })); }
 function restorePrefs(){ try{ const j=JSON.parse(localStorage.getItem('bb_prefs')||'{}'); if(j.w) els.weight.value=j.w; if(j.u) els.units.value=j.u; if(j.s) els.sex.value=j.s; if(j.r) els.rval.value=j.r; if(j.b) els.beta.value=j.b; els.rWrap.style.display=(els.sex.value==='c')?'grid':'none'; }catch{} }
 function saveSession(){ localStorage.setItem('bb_session', JSON.stringify({ started: session.started, t0: session.t0, peak: session.peak, drinks: DRINKS })); }
-
 function restoreSession(){ try{ const j=JSON.parse(localStorage.getItem('bb_session')||'{}'); if(j && j.started){ session.started = true; session.t0 = j.t0; session.peak = j.peak||0; DRINKS.splice(0, DRINKS.length, ...(j.drinks||[])); renderDrinkLog(); els.sessionState.textContent = 'Running'; els.endBtn.disabled=false; els.startBtn.disabled=true; startClock(); startRecalc(); } }catch{} }
-
-
 function bacNow(){
   if(DRINKS.length===0) return 0;
   const now = Date.now();
@@ -211,9 +204,11 @@ function etaFrom(contribs, target){
 function recalc(){
   const contribs = activeContribs();
   const b = contribs.reduce((s,d)=>s+d.b,0);
-  session.peak=Math.max(session.peak||0,b);
-  els.bac.textContent=b.toFixed(3);
-  els.peak.textContent=session.peak.toFixed(3);
+    session.peak=Math.max(session.peak||0,b);
+    els.bac.textContent=b.toFixed(3);
+    els.peak.textContent=session.peak.toFixed(3);
+    const totalStd = DRINKS.reduce((s,d)=>s+d.std,0);
+    els.stdDrinks.textContent = totalStd.toFixed(2);
   const earliest = contribs.length?Math.min(...contribs.map(d=>d.t)):null;
   els.elapsed.textContent=earliest?fmtHM(Date.now()-earliest):'0:00';
   els.eta50.textContent=b<=0.05?'Now':fmtEta(etaFrom(contribs,0.05));
@@ -240,11 +235,9 @@ document.querySelectorAll('button.drink').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     if(!session.started){ toast('Start session first'); return; }
     const std=parseFloat(btn.dataset.std), name=btn.dataset.name;
-
     const icon=btn.textContent.trim().split(' ')[0];
     DRINKS.push({name, std, icon, t: Date.now()});
     saveSession(); recalc(); renderDrinkLog();
-
     toast(`+ ${name} (${std.toFixed(2)} std)`);
     const emoji=document.createElement('div');
     emoji.className='fun-emoji';
@@ -256,9 +249,7 @@ document.querySelectorAll('button.drink').forEach(btn=>{
     setTimeout(()=>emoji.remove(),1000);
   });
 });
-  
 els.startBtn.addEventListener('click', ()=>{ if(session.started) return; session.started=true; session.t0=Date.now(); session.peak=0; DRINKS.length=0; renderDrinkLog(); els.sessionState.textContent='Running'; els.endBtn.disabled=false; els.shareBtn.disabled=true; els.startBtn.disabled=true; saveSession(); startClock(); startRecalc(); recalc(); });
-
 els.endBtn.addEventListener('click', async ()=>{
   if(!session.started) return;
   stopClock(); stopRecalc(); session.started=false;
@@ -291,7 +282,8 @@ async function buildBadgePNG(){
   ctx.fillStyle='#f5f5f7'; ctx.font='800 150px system-ui, Segoe UI, Roboto'; ctx.fillText(b.toFixed(3), w/2, Y+H/2+30);
   ctx.fillStyle='#ffd26b'; ctx.font='600 36px system-ui, Segoe UI, Roboto';
   const eta50=b<=0.05?'Now':timeIn(etaFrom(contribs,0.05)); const eta00=b<=0?'Now':timeIn(etaFrom(contribs,0));
-  let y=Y+H-120; ctx.fillText(`Drinks: ${DRINKS.length}`, w/2, y); y+=44; ctx.fillText(`Peak: ${peak.toFixed(3)}  ETA <0.05: ${eta50}`, w/2, y); y+=44; ctx.fillText(`ETA 0.00: ${eta00}`, w/2, y);
+  const totalStd = DRINKS.reduce((s,d)=>s+d.std,0);
+  let y=Y+H-120; ctx.fillText(`Std drinks: ${totalStd.toFixed(2)}`, w/2, y); y+=44; ctx.fillText(`Peak: ${peak.toFixed(3)}  ETA <0.05: ${eta50}`, w/2, y); y+=44; ctx.fillText(`ETA 0.00: ${eta00}`, w/2, y);
   const blob=await new Promise(res=>c.toBlob(res,'image/png')); if(blob) return blob;
   const dataURL=c.toDataURL('image/png'); const bstr=atob(dataURL.split(',')[1]); let n=bstr.length; const u8=new Uint8Array(n); while(n--) u8[n]=bstr.charCodeAt(n); return new Blob([u8], {type:'image/png'});
   function timeIn(hrs){ const ms=hrs*3600000; const when=new Date(Date.now()+ms); return `${fmtHM(ms)} (≈ ${when.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})})`; }
