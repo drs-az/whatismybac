@@ -94,11 +94,12 @@
       </div>
       <div class="row"><div>Session time</div><div id="sessionClock" class="mono">0:00:00</div></div>
 
-      <div class="controls" style="margin:10px 0 6px">
-        <button id="startBtn" class="btn">Start session</button>
-        <button id="endBtn" class="btn" disabled>End session</button>
-        <button id="shareBtn" class="btn" disabled>Share badge</button>
-      </div>
+        <div class="controls" style="margin:10px 0 6px">
+          <button id="startBtn" class="btn">Start session</button>
+          <button id="endBtn" class="btn" disabled>End session</button>
+          <button id="shareBtn" class="btn" disabled>Share badge</button>
+          <button id="uberBtn" class="btn">Call Uber</button>
+        </div>
 
       <hr style="border:0;border-top:1px solid #2b2a31;margin:10px 0">
 
@@ -125,7 +126,7 @@ const $ = (s) => document.querySelector(s);
 const els = {
   weight: $('#weight'), units: $('#units'), sex: $('#sex'), rWrap: $('#rWrap'),
   rval: $('#rval'), beta: $('#beta'),
-  startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), scene: $('.scene'), drinkLog: $('#drinkLog'),
+    startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), uberBtn: $('#uberBtn'), scene: $('.scene'), drinkLog: $('#drinkLog'),
   sessionState: $('#sessionState'), sessionClock: $('#sessionClock'),
     bac: $('#bac'), peak: $('#peak'), stdDrinks: $('#stdDrinks'), elapsed: $('#elapsed'), eta50: $('#eta50'), eta00: $('#eta00'),
     drinkLog: $('#drinkLog'),
@@ -259,6 +260,15 @@ els.endBtn.addEventListener('click', async ()=>{
 });
 els.shareBtn.addEventListener('click', async ()=>{
   try{ recalc(); const png=await buildBadgePNG(); await tryShareBadge(png); }catch{}
+});
+els.uberBtn.addEventListener('click', ()=>{
+  const appUrl='uber://';
+  const fallbackUrl='https://www.uber.com/us/en/download/';
+  const start=Date.now();
+  window.location.href=appUrl;
+  setTimeout(()=>{
+    if(Date.now()-start<1500){ window.location.href=fallbackUrl; }
+  },1000);
 });
 els.sex.addEventListener('change', ()=>{ els.rWrap.style.display=(els.sex.value==='c')?'grid':'none'; storePrefs(); recalc(); });
 [els.weight, els.units, els.rval, els.beta].forEach(i=> i.addEventListener('input', ()=>{ storePrefs(); recalc(); }));
