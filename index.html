@@ -202,7 +202,9 @@ function restoreSession(){
       try{
         await navigator.share({title:'Bar Buddy', url});
         return;
-      }catch{}
+      }catch(err){
+        // fall back to manual share when Web Share API fails
+      }
     }
     els.shareUrl.value=url;
     try{ await generateQR(url); }catch{}
