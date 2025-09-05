@@ -369,13 +369,13 @@ document.querySelectorAll('button.drink').forEach(btn=>{
   });
 });
 els.startBtn.addEventListener('click', ()=>{ if(session.started) return; session.started=true; session.t0=Date.now(); session.peak=0; DRINKS.length=0; renderDrinkLog(); els.sessionState.textContent='Running'; els.endBtn.disabled=false; els.shareBtn.disabled=true; els.startBtn.disabled=true; saveSession(); startClock(); startRecalc(); recalc(); });
-els.endBtn.addEventListener('click', async ()=>{
+els.endBtn.addEventListener('click', ()=>{
   if(!session.started) return;
   stopClock(); stopRecalc(); session.started=false;
   els.sessionState.textContent='Ended';
   els.endBtn.disabled=true; els.startBtn.disabled=false; els.shareBtn.disabled=false;
   saveSession(); recalc();
-  await shareApp();
+  toast('Session ended');
 });
 els.shareBtn.addEventListener('click', shareApp);
 els.copyLinkBtn.addEventListener('click', async ()=>{
