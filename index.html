@@ -155,16 +155,11 @@ function bacNow(){
   const now = Date.now();
   const W = Math.max(80, lbs());
   const r = rConst();
-  let total = 0;
-  for(const d of DRINKS){
-    const mins = (now - d.t)/60000;
-    const absorbed = Math.max(0, Math.min(1, mins/ABSORB_MIN));
-    const hrs = mins/60;
-    const A = d.std * absorbed * STD_FL_OZ;
-    const contrib = (A * 5.14 / (W * r)) - beta()*hrs;
-    total += Math.max(0, contrib);
-  }
-  return Math.max(0, total);
+  const absorbed = absorbedStdDrinks(now);
+  const A = absorbed * STD_FL_OZ;
+  const hrs = (now - DRINKS[0].t)/3600000;
+  const b = (A * 5.14 / (W * r)) - beta()*hrs;
+  return Math.max(0, b);
 }
 function recalc(){ const b=bacNow(); session.peak = Math.max(session.peak||0, b); els.bac.textContent = b.toFixed(3); els.peak.textContent = session.peak.toFixed(3); els.elapsed.textContent = DRINKS.length ? fmtHM(Date.now()-DRINKS[0].t) : '0:00'; els.eta50.textContent = b<=0.05 ? 'Now' : fmtEta((b-0.05)/beta()); els.eta00.textContent = b<=0    ? 'Now' : fmtEta(b/beta()); if(els.dbg && els.dbg.parentElement.open){ const now=Date.now(); const absorbed=absorbedStdDrinks(now); const A=(absorbed*STD_FL_OZ).toFixed(3); els.dbg.textContent = `W(lb)=${lbs().toFixed(1)}  r=${rConst().toFixed(3)}  beta=${beta().toFixed(3)}%/hr\nabsorbed(std)=${absorbed.toFixed(3)}  A(fl oz ethanol)=${A}\ndrinks=${DRINKS.length}  hours=${DRINKS.length?((now-DRINKS[0].t)/3600000).toFixed(3):'0.000'}\nBAC=${b.toFixed(3)}  peak=${session.peak.toFixed(3)}`; } }
 
