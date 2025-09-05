@@ -196,17 +196,19 @@ function restoreSession(){
   }catch{}
   els.shareBtn.disabled=session.started;
 }
-async function shareApp(){
-  const url=window.location.href;
-  if(navigator.share){
-    try{ await navigator.share({title:'Bar Buddy', url}); }catch{}
-  }else{
+  async function shareApp(){
+    const url=window.location.href;
+    if(navigator.share){
+      try{
+        await navigator.share({title:'Bar Buddy', url});
+        return;
+      }catch{}
+    }
     els.shareUrl.value=url;
     try{ await generateQR(url); }catch{}
     els.shareModal.classList.remove('hide');
     els.shareUrl.focus();
   }
-}
 async function generateQR(text){
   if(!els.qrCanvas) return;
   if(!window.QRCode){
