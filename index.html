@@ -388,11 +388,18 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !els.shareModal
 els.uberBtn.addEventListener('click', ()=>{
   const appUrl='uber://';
   const fallbackUrl='https://www.uber.com/us/en/download/';
-  const start=Date.now();
+  // Attempt to open the Uber app first
   window.location.href=appUrl;
-  setTimeout(()=>{
-    if(Date.now()-start<1500){ window.location.href=fallbackUrl; }
-  },1000);
+  // Fallback to the download page if the app doesn't open
+  const timer=setTimeout(()=>{ window.location.href=fallbackUrl; },1500);
+  const cancel=()=>{
+    clearTimeout(timer);
+    document.removeEventListener('visibilitychange', onVisibility);
+    window.removeEventListener('blur', cancel);
+  };
+  const onVisibility=()=>{ if(document.hidden) cancel(); };
+  document.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('blur', cancel);
 });
 els.sex.addEventListener('change', ()=>{ els.rWrap.style.display=(els.sex.value==='c')?'grid':'none'; storePrefs(); recalc(); });
 [els.weight, els.units, els.rval, els.beta].forEach(i=> i.addEventListener('input', ()=>{ storePrefs(); recalc(); }));
