@@ -18,7 +18,7 @@
   .bar{ position:absolute; left:0; right:0; bottom:0; height:46%; background:linear-gradient(#3a3244, #262530);
         border-top:3px solid var(--bar-edge); box-shadow: inset 0 12px 18px rgba(0,0,0,.35); }
   .drinks{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; }
-  #drinkLog{ flex:1; display:flex; flex-wrap:wrap; align-content:flex-start; gap:8px; font-size:28px; line-height:1; pointer-events:none; padding-top:8px; }
+    #drinkLog{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; font-size:28px; line-height:1; pointer-events:none; padding:8px 0; min-height:40px; }
   button.drink{ background:#1e1e24; border:1px solid #34333b; color:var(--ink); padding:10px 14px; border-radius:14px; cursor:pointer; display:flex; gap:8px; align-items:center; font-weight:600; }
   button.drink:hover{border-color:#484751; background:#26262d}
   .controls{display:flex; gap:12px; flex-wrap:wrap}
@@ -58,11 +58,13 @@
           <button class="drink" data-std="1.33" data-name="Cocktail">🍸 Cocktail</button>
           <button class="drink" data-std="1" data-name="Seltzer">🥂 Hard Seltzer</button>
         </div>
-        <div id="drinkLog"></div>
         <div class="bar"></div>
       </section>
 
-    <section class="card">
+      <div id="drinkLog"></div>
+
+
+      <section class="card">
       <div class="two">
         <label>Weight
           <small>(toggle units)</small>
@@ -126,13 +128,13 @@ const $ = (s) => document.querySelector(s);
 const els = {
   weight: $('#weight'), units: $('#units'), sex: $('#sex'), rWrap: $('#rWrap'),
   rval: $('#rval'), beta: $('#beta'),
-  startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), scene: $('.scene'), log: $('#drinkLog'),
+  startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), scene: $('.scene'), drinkLog: $('#drinkLog'),
   sessionState: $('#sessionState'), sessionClock: $('#sessionClock'),
   bac: $('#bac'), peak: $('#peak'), elapsed: $('#elapsed'), eta50: $('#eta50'), eta00: $('#eta00'),
   toast: $('#toast')
 };
 const DRINKS = []; const STD_FL_OZ = 0.6; const ICONS={Beer:'🍺', Pint:'🍺', Wine:'🍷', Shot:'🥃', Cocktail:'🍸', Seltzer:'🥂'};
-function renderLog(){ els.log.innerHTML=''; for(const d of DRINKS){ const span=document.createElement('span'); span.textContent=ICONS[d.name]||'🍹'; els.log.appendChild(span);} }
+function renderLog(){ els.drinkLog.innerHTML=''; for(const d of DRINKS){ const span=document.createElement('span'); span.textContent=ICONS[d.name]||'🍹'; els.drinkLog.appendChild(span);} }
 let session = {started:false, t0:null, tick:null, clockTick:null, peak:0};
 
 function toast(msg){ els.toast.textContent = msg; els.toast.classList.add('show'); setTimeout(()=>els.toast.classList.remove('show'),1800); }
