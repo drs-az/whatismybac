@@ -142,7 +142,7 @@
     <h2 id="shareTitle">Share Bar Buddy</h2>
     <input id="shareUrl" class="mono" readonly>
     <button id="copyLinkBtn" class="btn" style="margin-top:8px">Copy link</button>
-    <canvas id="qrCanvas" aria-label="App QR code" width="180" height="180" style="margin-top:16px"></canvas>
+    <img id="qrImg" aria-label="App QR code" width="180" height="180" style="margin-top:16px" alt="QR code">
     <button id="closeShare" class="btn" style="margin-top:16px">Close</button>
   </div>
 </div>
@@ -157,7 +157,7 @@ const els = {
     bac: $('#bac'), peak: $('#peak'), stdDrinks: $('#stdDrinks'), elapsed: $('#elapsed'), eta50: $('#eta50'), eta00: $('#eta00'),
     drinkLog: $('#drinkLog'),
   toast: $('#toast'),
-  shareModal: $('#shareModal'), shareUrl: $('#shareUrl'), copyLinkBtn: $('#copyLinkBtn'), qrCanvas: $('#qrCanvas'), closeShare: $('#closeShare')
+  shareModal: $('#shareModal'), shareUrl: $('#shareUrl'), copyLinkBtn: $('#copyLinkBtn'), qrImg: $('#qrImg'), closeShare: $('#closeShare')
 };
 const DRINKS = []; const STD_FL_OZ = 0.6; const ICONS={Beer:'🍺', Pint:'🍺', Wine:'🍷', Shot:'🥃', Cocktail:'🍸', Seltzer:'🥂'};
 function renderLog(){ els.drinkLog.innerHTML=''; for(const d of DRINKS){ const span=document.createElement('span'); span.textContent=ICONS[d.name]||'🍹'; els.drinkLog.appendChild(span);} }
@@ -174,6 +174,30 @@ function fmtEta(hrs){ if(!isFinite(hrs)||hrs<=0) return 'Now'; const ms=hrs*3600
 
 function renderDrinkLog(){
   els.drinkLog.textContent = DRINKS.map(d=>d.icon).join(' ');
+}
+
+async function createShareImage(){
+  const width=600, height=400;
+  const c=document.createElement('canvas');
+  c.width=width; c.height=height;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#18181d';
+  ctx.fillRect(0,0,width,height);
+  ctx.fillStyle='#fff';
+  ctx.font='28px sans-serif';
+  ctx.fillText('Bar Buddy',20,40);
+  ctx.font='20px sans-serif';
+  ctx.fillText('BAC: '+(els.bac?els.bac.textContent:'0.000'),20,80);
+  ctx.fillText('Std drinks: '+(els.stdDrinks?els.stdDrinks.textContent:'0'),20,110);
+  ctx.fillText('Elapsed: '+(els.elapsed?els.elapsed.textContent:'0:00'),20,140);
+  ctx.font='32px serif';
+  let x=20, y=200;
+  for(const d of DRINKS){
+    ctx.fillText(d.icon,x,y);
+    x+=40;
+    if(x>width-40){ x=20; y+=40; }
+  }
+  return new Promise(res=> c.toBlob(b=>res(new File([b],'barbuddy.png',{type:'image/png'})),'image/png'));
 }
 
 function storePrefs(){ localStorage.setItem('bb_prefs', JSON.stringify({ w: els.weight.value, u: els.units.value, s: els.sex.value, r: els.rval.value, b: els.beta.value })); }
@@ -197,26 +221,24 @@ function restoreSession(){
   els.shareBtn.disabled=session.started;
 }
   async function shareApp(){
-    const url=window.location.href;
-    if(navigator.share){
-      try{
-        await navigator.share({title:'Bar Buddy', url});
+    const url='https://tinyurl.com/BarBuddyApp';
+    try{
+      const img=await createShareImage();
+      if(navigator.share){
+        const data={title:'Bar Buddy', url};
+        if(img && navigator.canShare && navigator.canShare({files:[img]})) data.files=[img];
+        await navigator.share(data);
         return;
-      }catch(err){
-        // fall back to manual share when Web Share API fails
       }
-    }
+    }catch(err){/* ignore and fallback */}
     els.shareUrl.value=url;
-    try{ await generateQR(url); }catch{}
+    generateQR(url);
     els.shareModal.classList.remove('hide');
     els.shareUrl.focus();
   }
-async function generateQR(text){
-  if(!els.qrCanvas) return;
-  if(!window.QRCode){
-    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
-  }
-  return new Promise((res,rej)=>{ window.QRCode.toCanvas(els.qrCanvas, text, {width:180}, e=> e?rej(e):res()); });
+function generateQR(text){
+  if(!els.qrImg) return;
+  els.qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(text);
 }
 function bacNow(){
   if(DRINKS.length===0) return 0;
