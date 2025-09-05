@@ -61,7 +61,6 @@
         <div id="drinkLog" class="drink-log"></div>
         <div class="bar"></div>
       </section>
-
       <section class="card">
       <div class="two">
         <label>Weight
@@ -127,13 +126,14 @@ const $ = (s) => document.querySelector(s);
 const els = {
   weight: $('#weight'), units: $('#units'), sex: $('#sex'), rWrap: $('#rWrap'),
   rval: $('#rval'), beta: $('#beta'),
-  startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), scene: $('.scene'),
+  startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), scene: $('.scene'), drinkLog: $('#drinkLog'),
   sessionState: $('#sessionState'), sessionClock: $('#sessionClock'),
     bac: $('#bac'), peak: $('#peak'), stdDrinks: $('#stdDrinks'), elapsed: $('#elapsed'), eta50: $('#eta50'), eta00: $('#eta00'),
     drinkLog: $('#drinkLog'),
   toast: $('#toast')
 };
-const DRINKS = []; const STD_FL_OZ = 0.6;
+const DRINKS = []; const STD_FL_OZ = 0.6; const ICONS={Beer:'🍺', Pint:'🍺', Wine:'🍷', Shot:'🥃', Cocktail:'🍸', Seltzer:'🥂'};
+function renderLog(){ els.drinkLog.innerHTML=''; for(const d of DRINKS){ const span=document.createElement('span'); span.textContent=ICONS[d.name]||'🍹'; els.drinkLog.appendChild(span);} }
 let session = {started:false, t0:null, tick:null, clockTick:null, peak:0};
 
 function toast(msg){ els.toast.textContent = msg; els.toast.classList.add('show'); setTimeout(()=>els.toast.classList.remove('show'),1800); }
@@ -153,7 +153,6 @@ function storePrefs(){ localStorage.setItem('bb_prefs', JSON.stringify({ w: els.
 function restorePrefs(){ try{ const j=JSON.parse(localStorage.getItem('bb_prefs')||'{}'); if(j.w) els.weight.value=j.w; if(j.u) els.units.value=j.u; if(j.s) els.sex.value=j.s; if(j.r) els.rval.value=j.r; if(j.b) els.beta.value=j.b; els.rWrap.style.display=(els.sex.value==='c')?'grid':'none'; }catch{} }
 function saveSession(){ localStorage.setItem('bb_session', JSON.stringify({ started: session.started, t0: session.t0, peak: session.peak, drinks: DRINKS })); }
 function restoreSession(){ try{ const j=JSON.parse(localStorage.getItem('bb_session')||'{}'); if(j && j.started){ session.started = true; session.t0 = j.t0; session.peak = j.peak||0; DRINKS.splice(0, DRINKS.length, ...(j.drinks||[])); renderDrinkLog(); els.sessionState.textContent = 'Running'; els.endBtn.disabled=false; els.startBtn.disabled=true; startClock(); startRecalc(); } }catch{} }
-
 function bacNow(){
   if(DRINKS.length===0) return 0;
   const now = Date.now();
