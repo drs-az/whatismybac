@@ -14,10 +14,11 @@
   header{display:flex; align-items:center; justify-content:space-between; gap:12px}
   h1{margin:0; font-size:24px; font-weight:700} .muted{color:var(--muted)}
   .grid{display:grid; gap:16px; grid-template-columns:1fr} @media (min-width:780px){ .grid{grid-template-columns:1fr 1fr} }
-  .scene{position:relative; min-height:280px; border-radius:20px; background:linear-gradient(#1d1c20, #141316 55%, #121215 55%); border:1px solid #2e2d33}
+  .scene{position:relative; min-height:280px; border-radius:20px; background:linear-gradient(#1d1c20, #141316 55%, #121215 55%); border:1px solid #2e2d33; padding:16px; padding-bottom:calc(46% + 16px); display:flex; flex-direction:column}
   .bar{ position:absolute; left:0; right:0; bottom:0; height:46%; background:linear-gradient(#3a3244, #262530);
         border-top:3px solid var(--bar-edge); box-shadow: inset 0 12px 18px rgba(0,0,0,.35); }
-  .drinks{ position:absolute; inset:16px 16px auto 16px; display:flex; gap:12px; flex-wrap:wrap; }
+  .drinks{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; }
+  #drinkLog{ flex:1; display:flex; flex-wrap:wrap; align-content:flex-start; gap:8px; font-size:28px; line-height:1; pointer-events:none; padding-top:8px; }
   button.drink{ background:#1e1e24; border:1px solid #34333b; color:var(--ink); padding:10px 14px; border-radius:14px; cursor:pointer; display:flex; gap:8px; align-items:center; font-weight:600; }
   button.drink:hover{border-color:#484751; background:#26262d}
   .controls{display:flex; gap:12px; flex-wrap:wrap}
@@ -48,17 +49,18 @@
   </header>
 
   <div class="grid">
-    <section class="scene">
-      <div class="drinks">
-        <button class="drink" data-std="1" data-name="Beer">🍺 Beer (12&nbsp;oz)</button>
-        <button class="drink" data-std="1.33" data-name="Pint">🍺 Pint (16&nbsp;oz)</button>
-        <button class="drink" data-std="1" data-name="Wine">🍷 Wine</button>
-        <button class="drink" data-std="1" data-name="Shot">🥃 Shot</button>
-        <button class="drink" data-std="1.33" data-name="Cocktail">🍸 Cocktail</button>
-        <button class="drink" data-std="1" data-name="Seltzer">🥂 Hard Seltzer</button>
-      </div>
-      <div class="bar"></div>
-    </section>
+      <section class="scene">
+        <div class="drinks">
+          <button class="drink" data-std="1" data-name="Beer">🍺 Beer (12&nbsp;oz)</button>
+          <button class="drink" data-std="1.33" data-name="Pint">🍺 Pint (16&nbsp;oz)</button>
+          <button class="drink" data-std="1" data-name="Wine">🍷 Wine</button>
+          <button class="drink" data-std="1" data-name="Shot">🥃 Shot</button>
+          <button class="drink" data-std="1.33" data-name="Cocktail">🍸 Cocktail</button>
+          <button class="drink" data-std="1" data-name="Seltzer">🥂 Hard Seltzer</button>
+        </div>
+        <div id="drinkLog"></div>
+        <div class="bar"></div>
+      </section>
 
     <section class="card">
       <div class="two">
@@ -124,12 +126,13 @@ const $ = (s) => document.querySelector(s);
 const els = {
   weight: $('#weight'), units: $('#units'), sex: $('#sex'), rWrap: $('#rWrap'),
   rval: $('#rval'), beta: $('#beta'),
-  startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), scene: $('.scene'),
+  startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), scene: $('.scene'), log: $('#drinkLog'),
   sessionState: $('#sessionState'), sessionClock: $('#sessionClock'),
   bac: $('#bac'), peak: $('#peak'), elapsed: $('#elapsed'), eta50: $('#eta50'), eta00: $('#eta00'),
   toast: $('#toast')
 };
-const DRINKS = []; const STD_FL_OZ = 0.6;
+const DRINKS = []; const STD_FL_OZ = 0.6; const ICONS={Beer:'🍺', Pint:'🍺', Wine:'🍷', Shot:'🥃', Cocktail:'🍸', Seltzer:'🥂'};
+function renderLog(){ els.log.innerHTML=''; for(const d of DRINKS){ const span=document.createElement('span'); span.textContent=ICONS[d.name]||'🍹'; els.log.appendChild(span);} }
 let session = {started:false, t0:null, tick:null, clockTick:null, peak:0};
 
 function toast(msg){ els.toast.textContent = msg; els.toast.classList.add('show'); setTimeout(()=>els.toast.classList.remove('show'),1800); }
@@ -144,7 +147,7 @@ function fmtEta(hrs){ if(!isFinite(hrs)||hrs<=0) return 'Now'; const ms=hrs*3600
 function storePrefs(){ localStorage.setItem('bb_prefs', JSON.stringify({ w: els.weight.value, u: els.units.value, s: els.sex.value, r: els.rval.value, b: els.beta.value })); }
 function restorePrefs(){ try{ const j=JSON.parse(localStorage.getItem('bb_prefs')||'{}'); if(j.w) els.weight.value=j.w; if(j.u) els.units.value=j.u; if(j.s) els.sex.value=j.s; if(j.r) els.rval.value=j.r; if(j.b) els.beta.value=j.b; els.rWrap.style.display=(els.sex.value==='c')?'grid':'none'; }catch{} }
 function saveSession(){ localStorage.setItem('bb_session', JSON.stringify({ started: session.started, t0: session.t0, peak: session.peak, drinks: DRINKS })); }
-function restoreSession(){ try{ const j=JSON.parse(localStorage.getItem('bb_session')||'{}'); if(j && j.started){ session.started = true; session.t0 = j.t0; session.peak = j.peak||0; DRINKS.splice(0, DRINKS.length, ...(j.drinks||[])); els.sessionState.textContent = 'Running'; els.endBtn.disabled=false; els.startBtn.disabled=true; startClock(); startRecalc(); } }catch{} }
+function restoreSession(){ try{ const j=JSON.parse(localStorage.getItem('bb_session')||'{}'); if(j && j.started){ session.started = true; session.t0 = j.t0; session.peak = j.peak||0; DRINKS.splice(0, DRINKS.length, ...(j.drinks||[])); renderLog(); els.sessionState.textContent = 'Running'; els.endBtn.disabled=false; els.startBtn.disabled=true; startClock(); startRecalc(); } }catch{} }
 
 function bacNow(){
   if(DRINKS.length===0) return 0;
@@ -227,7 +230,7 @@ document.querySelectorAll('button.drink').forEach(btn=>{
     if(!session.started){ toast('Start session first'); return; }
     const std=parseFloat(btn.dataset.std), name=btn.dataset.name;
     DRINKS.push({name, std, t: Date.now()});
-    saveSession(); recalc();
+    saveSession(); renderLog(); recalc();
     toast(`+ ${name} (${std.toFixed(2)} std)`);
     const emoji=document.createElement('div');
     emoji.className='fun-emoji';
@@ -239,7 +242,7 @@ document.querySelectorAll('button.drink').forEach(btn=>{
     setTimeout(()=>emoji.remove(),1000);
   });
 });
-els.startBtn.addEventListener('click', ()=>{ if(session.started) return; session.started=true; session.t0=Date.now(); session.peak=0; DRINKS.length=0; els.sessionState.textContent='Running'; els.endBtn.disabled=false; els.shareBtn.disabled=true; els.startBtn.disabled=true; saveSession(); startClock(); startRecalc(); recalc(); });
+els.startBtn.addEventListener('click', ()=>{ if(session.started) return; session.started=true; session.t0=Date.now(); session.peak=0; DRINKS.length=0; renderLog(); els.sessionState.textContent='Running'; els.endBtn.disabled=false; els.shareBtn.disabled=true; els.startBtn.disabled=true; saveSession(); startClock(); startRecalc(); recalc(); });
 els.endBtn.addEventListener('click', async ()=>{
   if(!session.started) return;
   stopClock(); stopRecalc(); session.started=false;
