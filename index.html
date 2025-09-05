@@ -327,28 +327,14 @@ function activeContribs(){
     const A = d.std * STD_FL_OZ;
     const hrs = (now - d.t)/3600000;
     const contrib = (A * 5.14 / (W * r)) - bRate*hrs;
-    if(contrib>0) arr.push({b:contrib,t:d.t,rem:contrib/bRate});
+    if(contrib>0) arr.push({b:contrib,t:d.t});
   }
   return arr;
 }
 function etaFrom(contribs, target){
   const bRate = beta();
-  if(contribs.length===0) return 0;
-  const arr=[...contribs].sort((a,b)=>a.rem-b.rem);
-  let total = arr.reduce((s,d)=>s+d.b,0);
-  let prev = 0;
-  let active = arr.length;
-  for(const c of arr){
-    const dt = c.rem - prev;
-    if(total - bRate*active*dt <= target){
-      const needed = total - target;
-      return prev + needed/(bRate*active);
-    }
-    total -= bRate*active*dt;
-    prev = c.rem;
-    active--;
-  }
-  return prev;
+  const total = contribs.reduce((s,d)=>s+d.b,0);
+  return Math.max(0, (total - target) / bRate);
 }
 function recalc(){
   const contribs = activeContribs();
