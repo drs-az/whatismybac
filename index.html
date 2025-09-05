@@ -143,7 +143,8 @@ function fmtHM(ms){ if(ms<=0) return '0:00'; const m=Math.round(ms/60000); const
 function fmtEta(hrs){ if(!isFinite(hrs)||hrs<=0) return 'Now'; const ms=hrs*3600000, when=new Date(Date.now()+ms); return `${fmtHM(ms)} (≈ ${when.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})})`; }
 
 function renderDrinkLog(){
-  els.drinkLog.innerHTML = DRINKS.map(d=>d.icon).join(' ');
+  els.drinkLog.textContent = DRINKS.map(d=>d.icon).join(' ');
+  els.drinkLog.scrollLeft = els.drinkLog.scrollWidth;
 }
 
 function storePrefs(){ localStorage.setItem('bb_prefs', JSON.stringify({ w: els.weight.value, u: els.units.value, s: els.sex.value, r: els.rval.value, b: els.beta.value })); }
