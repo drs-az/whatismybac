@@ -3,37 +3,37 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<meta name="theme-color" content="#2e2a2a" />
+<meta name="theme-color" content="#18181d" />
 <title>Bar Buddy — BAC Estimator (Stable)</title>
 <style>
-  :root{ --bg:#0b0b0c; --panel:#171518; --ink:#f3f3f3; --muted:#bdbdbd; --bar:#2b2320; --bar-edge:#3d302b; --accent:#ffd26b; --danger:#ff6b6b; }
+  :root{ --bg:#0d0d10; --panel:#18181d; --ink:#f5f5f7; --muted:#a5a5aa; --bar:#262530; --bar-edge:#3e3d4a; --accent:#ffb347; --danger:#ff6b6b; }
   *{box-sizing:border-box} html,body{height:100%}
-  body{ margin:0; background:radial-gradient(1200px 1200px at 50% -240px,#1a1a1f 0,#0b0b0c 65%); color:var(--ink);
-        font:500 16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; display:flex; align-items:center; justify-content:center; padding:18px; }
-  .app{ width:min(980px,100%); background:var(--panel); border:1px solid #26242a; border-radius:22px; padding:18px; box-shadow:0 30px 80px rgba(0,0,0,.45); position:relative; overflow:hidden; }
+  body{ margin:0; background:radial-gradient(1000px 1000px at 50% -200px,#27262b 0,var(--bg) 70%); color:var(--ink);
+        font:400 16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .app{ width:min(960px,100%); background:var(--panel); border:1px solid #2e2d33; border-radius:24px; padding:24px; box-shadow:0 24px 64px rgba(0,0,0,.55); position:relative; overflow:hidden; }
   header{display:flex; align-items:center; justify-content:space-between; gap:12px}
-  h1{margin:0; font-size:22px} .muted{color:var(--muted)}
-  .grid{display:grid; gap:12px; grid-template-columns:1fr} @media (min-width:780px){ .grid{grid-template-columns:1fr 1fr} }
-  .scene{position:relative; min-height:280px; border-radius:16px; background:linear-gradient(#1a191c, #121113 52%, #0f0e10 52%); border:1px solid #26242a}
-  .bar{ position:absolute; left:0; right:0; bottom:0; height:46%; background:linear-gradient(#3a2f29, #2b2320);
+  h1{margin:0; font-size:24px; font-weight:700} .muted{color:var(--muted)}
+  .grid{display:grid; gap:16px; grid-template-columns:1fr} @media (min-width:780px){ .grid{grid-template-columns:1fr 1fr} }
+  .scene{position:relative; min-height:280px; border-radius:20px; background:linear-gradient(#1d1c20, #141316 55%, #121215 55%); border:1px solid #2e2d33}
+  .bar{ position:absolute; left:0; right:0; bottom:0; height:46%; background:linear-gradient(#3a3244, #262530);
         border-top:3px solid var(--bar-edge); box-shadow: inset 0 12px 18px rgba(0,0,0,.35); }
-  .drinks{ position:absolute; inset:12px 12px auto 12px; display:flex; gap:10px; flex-wrap:wrap; }
-  button.drink{ background:#1b1a1f; border:1px solid #2c2a32; color:#fff; padding:10px 12px; border-radius:12px; cursor:pointer; display:flex; gap:8px; align-items:center; font-weight:600; }
-  button.drink:hover{border-color:#3a3844}
-  .controls{display:flex; gap:10px; flex-wrap:wrap}
-  .card{background:#0f0e12; border:1px solid #25242b; border-radius:16px; padding:12px}
+  .drinks{ position:absolute; inset:16px 16px auto 16px; display:flex; gap:12px; flex-wrap:wrap; }
+  button.drink{ background:#1e1e24; border:1px solid #34333b; color:var(--ink); padding:10px 14px; border-radius:14px; cursor:pointer; display:flex; gap:8px; align-items:center; font-weight:600; }
+  button.drink:hover{border-color:#484751; background:#26262d}
+  .controls{display:flex; gap:12px; flex-wrap:wrap}
+  .card{background:#141319; border:1px solid #2e2d33; border-radius:20px; padding:16px}
   .row{display:flex; align-items:center; justify-content:space-between}
-  .big{font-size:30px; font-weight:800} .danger{color:var(--danger)}
-  label small{color:#aaa}
-  input, select{background:#141318; color:#fff; border:1px solid #2b2a31; padding:10px 12px; border-radius:10px; width:100%;}
-  .two{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-  .toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:#121317; color:#e7ffe7; border:1px solid #2b2c34;
+  .big{font-size:32px; font-weight:800} .danger{color:var(--danger)}
+  label small{color:#888}
+  input, select{background:#19181d; color:#fff; border:1px solid #33323a; padding:10px 12px; border-radius:12px; width:100%;}
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:#18181d; color:#e7ffe7; border:1px solid #2b2c34;
     padding:10px 14px; border-radius:12px; box-shadow:0 12px 30px rgba(0,0,0,.4); display:none; z-index:10}
   .toast.show{display:block; animation:fade .25s ease-out}
   @keyframes fade{from{opacity:0; transform:translate(-50%,6px)} to{opacity:1; transform:translate(-50%,0)}}
   footer{margin-top:10px; color:#a1a1a7; font-size:12px}
-  .btn{background:#1b1a1f; color:#fff; border:1px solid #2c2a32; padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:700}
-  .btn:hover{border-color:#3a3a46}
+  .btn{background:var(--accent); color:#000; border:none; padding:10px 18px; border-radius:14px; cursor:pointer; font-weight:700; transition:filter .15s}
+  .btn:hover{filter:brightness(1.1)}
   .pill{padding:6px 10px; border-radius:999px; border:1px solid #323038; font-size:12px}
   .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
   .fun-emoji{position:absolute; animation:pop 1s ease-out forwards; font-size:32px; pointer-events:none}
@@ -145,26 +145,64 @@ function restorePrefs(){ try{ const j=JSON.parse(localStorage.getItem('bb_prefs'
 function saveSession(){ localStorage.setItem('bb_session', JSON.stringify({ started: session.started, t0: session.t0, peak: session.peak, drinks: DRINKS })); }
 function restoreSession(){ try{ const j=JSON.parse(localStorage.getItem('bb_session')||'{}'); if(j && j.started){ session.started = true; session.t0 = j.t0; session.peak = j.peak||0; DRINKS.splice(0, DRINKS.length, ...(j.drinks||[])); els.sessionState.textContent = 'Running'; els.endBtn.disabled=false; els.startBtn.disabled=true; startClock(); startRecalc(); } }catch{} }
 
-function totalStdDrinks(){ return DRINKS.reduce((s,d)=>s+d.std,0); }
 function bacNow(){
   if(DRINKS.length===0) return 0;
   const now = Date.now();
   const W = Math.max(80, lbs());
   const r = rConst();
-  const total = totalStdDrinks();
-  const A = total * STD_FL_OZ;
-  const hrs = (now - DRINKS[0].t)/3600000;
-  const b = (A * 5.14 / (W * r)) - beta()*hrs;
-  return Math.max(0, b);
+  const bRate = beta();
+  let total = 0;
+  for(const d of DRINKS){
+    const A = d.std * STD_FL_OZ;
+    const hrs = (now - d.t)/3600000;
+    const contrib = (A * 5.14 / (W * r)) - bRate*hrs;
+    if(contrib>0) total += contrib;
+  }
+  return total;
+}
+function activeContribs(){
+  const now = Date.now();
+  const W = Math.max(80, lbs());
+  const r = rConst();
+  const bRate = beta();
+  const arr=[];
+  for(const d of DRINKS){
+    const A = d.std * STD_FL_OZ;
+    const hrs = (now - d.t)/3600000;
+    const contrib = (A * 5.14 / (W * r)) - bRate*hrs;
+    if(contrib>0) arr.push({b:contrib,t:d.t,rem:contrib/bRate});
+  }
+  return arr;
+}
+function etaFrom(contribs, target){
+  const bRate = beta();
+  if(contribs.length===0) return 0;
+  const arr=[...contribs].sort((a,b)=>a.rem-b.rem);
+  let total = arr.reduce((s,d)=>s+d.b,0);
+  let prev = 0;
+  let active = arr.length;
+  for(const c of arr){
+    const dt = c.rem - prev;
+    if(total - bRate*active*dt <= target){
+      const needed = total - target;
+      return prev + needed/(bRate*active);
+    }
+    total -= bRate*active*dt;
+    prev = c.rem;
+    active--;
+  }
+  return prev;
 }
 function recalc(){
-  const b=bacNow();
+  const contribs = activeContribs();
+  const b = contribs.reduce((s,d)=>s+d.b,0);
   session.peak=Math.max(session.peak||0,b);
   els.bac.textContent=b.toFixed(3);
   els.peak.textContent=session.peak.toFixed(3);
-  els.elapsed.textContent=DRINKS.length?fmtHM(Date.now()-DRINKS[0].t):'0:00';
-  els.eta50.textContent=b<=0.05?'Now':fmtEta((b-0.05)/beta());
-  els.eta00.textContent=b<=0?'Now':fmtEta(b/beta());
+  const earliest = contribs.length?Math.min(...contribs.map(d=>d.t)):null;
+  els.elapsed.textContent=earliest?fmtHM(Date.now()-earliest):'0:00';
+  els.eta50.textContent=b<=0.05?'Now':fmtEta(etaFrom(contribs,0.05));
+  els.eta00.textContent=b<=0?'Now':fmtEta(etaFrom(contribs,0));
 }
 
 function startClock(){
@@ -218,23 +256,22 @@ els.sex.addEventListener('change', ()=>{ els.rWrap.style.display=(els.sex.value=
 restorePrefs(); restoreSession(); recalc();
 
 async function buildBadgePNG(){
-  const w=1200, h=630, pad=48;
+  const w=1200, h=630;
   const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d');
-  const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#1a1719'); g.addColorStop(1,'#0b0a0c'); ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
-  const X=pad, Y=pad, W=w-pad*2, H=h-pad*2;
-  roundRect(ctx,X,Y,W,H,26); ctx.fillStyle='#121115'; ctx.fill(); ctx.strokeStyle='#25242b'; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle='#f3f3f3'; ctx.font='700 54px system-ui, Segoe UI, Roboto'; ctx.fillText('Bar Buddy — Session Badge', X+24, Y+70);
-  const barY=Y+110, barH=H-210;
-  ctx.fillStyle='#3a2f29'; roundRect(ctx, X+28, barY+barH-120, W-56, 92, 14); ctx.fill();
-  ctx.strokeStyle='#4a3a34'; ctx.lineWidth=3; roundRect(ctx, X+28, barY+barH-120, W-56, 92, 14); ctx.stroke();
-  let idx=0, row=0;
-  const drawers={'Beer':drawEmptyBeer,'Wine':drawEmptyWine,'Shot':drawEmptyShot,'Cocktail':drawEmptyMartini,'Seltzer':drawEmptyWine};
-  const cellW=(W-56-20)/Math.max(1,Math.min(DRINKS.length||1,10));
-  for(const d of DRINKS){ const col=idx%10; row=Math.floor(idx/10); const cx=X+38+col*cellW+cellW/2; const cy=barY+barH-140-row*120; (drawers[d.name]||drawEmptyShot)(ctx,cx,cy,60); idx++; if(row>=2) break; }
-  const b=bacNow(); const peak=session.peak||0;
-  ctx.fillStyle='#ffd26b'; ctx.font='600 34px system-ui, Segoe UI, Roboto';
-  const eta50=b<=0.05?'Now':timeIn((b-0.05)/beta()); const eta00=b<=0?'Now':timeIn(b/beta());
-  let y=Y+H-70; ctx.fillText(`Drinks: ${DRINKS.length}`, X+34, y); y-=42; ctx.fillText(`Peak BAC: ${peak.toFixed(3)} | Current: ${b.toFixed(3)}`, X+34, y); y-=42; ctx.fillText(`Est. time until < 0.05: ${eta50}`, X+34, y); y-=42; ctx.fillText(`Est. time until 0.00: ${eta00}`, X+34, y);
+  const g=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,h); g.addColorStop(0,'#2a262c'); g.addColorStop(1,'#0b0b0c'); ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  const pad=60, X=pad, Y=pad, W=w-pad*2, H=h-pad*2;
+  roundRect(ctx,X,Y,W,H,32); const pg=ctx.createLinearGradient(0,Y,0,Y+H); pg.addColorStop(0,'#1c1b20'); pg.addColorStop(1,'#141318'); ctx.fillStyle=pg; ctx.fill(); ctx.strokeStyle='#2f2d35'; ctx.lineWidth=2; ctx.stroke();
+  ctx.textAlign='center';
+  ctx.fillStyle='#ffd26b'; ctx.font='700 58px system-ui, Segoe UI, Roboto'; ctx.fillText('Bar Buddy Session', w/2, Y+80);
+  let idx=0; const drawers={'Beer':drawEmptyBeer,'Wine':drawEmptyWine,'Shot':drawEmptyShot,'Cocktail':drawEmptyMartini,'Seltzer':drawEmptyWine};
+  const maxIcons=Math.min(DRINKS.length,8); const iconSize=48; const startX=w/2-((maxIcons-1)*iconSize*1.2)/2;
+  for(const d of DRINKS.slice(0,maxIcons)){ const cx=startX+idx*iconSize*1.2; const cy=Y+140; (drawers[d.name]||drawEmptyShot)(ctx,cx,cy,iconSize/2); idx++; }
+  const contribs=activeContribs();
+  const b=contribs.reduce((s,d)=>s+d.b,0); const peak=session.peak||0;
+  ctx.fillStyle='#f5f5f7'; ctx.font='800 150px system-ui, Segoe UI, Roboto'; ctx.fillText(b.toFixed(3), w/2, Y+H/2+30);
+  ctx.fillStyle='#ffd26b'; ctx.font='600 36px system-ui, Segoe UI, Roboto';
+  const eta50=b<=0.05?'Now':timeIn(etaFrom(contribs,0.05)); const eta00=b<=0?'Now':timeIn(etaFrom(contribs,0));
+  let y=Y+H-120; ctx.fillText(`Drinks: ${DRINKS.length}`, w/2, y); y+=44; ctx.fillText(`Peak: ${peak.toFixed(3)}  ETA <0.05: ${eta50}`, w/2, y); y+=44; ctx.fillText(`ETA 0.00: ${eta00}`, w/2, y);
   const blob=await new Promise(res=>c.toBlob(res,'image/png')); if(blob) return blob;
   const dataURL=c.toDataURL('image/png'); const bstr=atob(dataURL.split(',')[1]); let n=bstr.length; const u8=new Uint8Array(n); while(n--) u8[n]=bstr.charCodeAt(n); return new Blob([u8], {type:'image/png'});
   function timeIn(hrs){ const ms=hrs*3600000; const when=new Date(Date.now()+ms); return `${fmtHM(ms)} (≈ ${when.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})})`; }
