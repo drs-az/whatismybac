@@ -108,7 +108,6 @@
           <button id="endBtn" class="btn" disabled>End Session</button>
           <button id="shareBtn" class="btn">Share Bar Buddy</button>
           <button id="uberBtn" class="btn">Call Uber</button>
-          <button id="speedBtn" class="btn">Enable Slow Mode</button>
         </div>
 
       <hr style="border:0;border-top:1px solid #2b2a31;margin:10px 0">
@@ -166,7 +165,7 @@ const $ = (s) => document.querySelector(s);
 const els = {
   weight: $('#weight'), units: $('#units'), sex: $('#sex'), rWrap: $('#rWrap'),
   rval: $('#rval'), beta: $('#beta'),
-    startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), uberBtn: $('#uberBtn'), speedBtn: $('#speedBtn'), scene: $('.scene'), drinkLog: $('#drinkLog'),
+    startBtn: $('#startBtn'), endBtn: $('#endBtn'), shareBtn: $('#shareBtn'), uberBtn: $('#uberBtn'), scene: $('.scene'), drinkLog: $('#drinkLog'),
   sessionState: $('#sessionState'), sessionClock: $('#sessionClock'),
     bac: $('#bac'), peak: $('#peak'), stdDrinks: $('#stdDrinks'), elapsed: $('#elapsed'), eta50: $('#eta50'), eta00: $('#eta00'),
     drinkLog: $('#drinkLog'),
@@ -175,9 +174,8 @@ const els = {
   , sessionModal: $('#sessionModal'), sessionSnap: $('#sessionSnapshot'), shareSessionBtn: $('#shareSessionBtn'), closeSessionBtn: $('#closeSessionBtn')
 };
 const DRINKS = []; const STD_FL_OZ = 0.6; const ICONS={Beer:'🍺', Pint:'🍺', Wine:'🍷', Shot:'🥃', Cocktail:'🍸', Seltzer:'🥂'};
-const FAST_INTERVAL = 1000, SLOW_INTERVAL = 5000;
 function renderLog(){ els.drinkLog.innerHTML=''; for(const d of DRINKS){ const span=document.createElement('span'); span.textContent=ICONS[d.name]||'🍹'; els.drinkLog.appendChild(span);} }
-let session = {started:false, t0:null, tick:null, clockTick:null, peak:0, slowMode:false};
+let session = {started:false, t0:null, tick:null, clockTick:null, peak:0};
 
 function toast(msg){ els.toast.textContent = msg; els.toast.classList.add('show'); setTimeout(()=>els.toast.classList.remove('show'),1800); }
 function lbs(){ const v = parseFloat(els.weight.value||0); return (els.units.value==='kg') ? v*2.20462 : v; }
@@ -194,20 +192,10 @@ function renderDrinkLog(){
 
 function storePrefs(){ localStorage.setItem('bb_prefs', JSON.stringify({ w: els.weight.value, u: els.units.value, s: els.sex.value, r: els.rval.value, b: els.beta.value })); }
 function restorePrefs(){ try{ const j=JSON.parse(localStorage.getItem('bb_prefs')||'{}'); if(j.w) els.weight.value=j.w; if(j.u) els.units.value=j.u; if(j.s) els.sex.value=j.s; if(j.r) els.rval.value=j.r; if(j.b) els.beta.value=j.b; els.rWrap.style.display=(els.sex.value==='c')?'grid':'none'; }catch{} }
-function saveSession(){
-  localStorage.setItem('bb_session', JSON.stringify({
-    started: session.started,
-    t0: session.t0,
-    peak: session.peak,
-    drinks: DRINKS,
-    slowMode: session.slowMode
-  }));
-}
+function saveSession(){ localStorage.setItem('bb_session', JSON.stringify({ started: session.started, t0: session.t0, peak: session.peak, drinks: DRINKS })); }
 function restoreSession(){
   try{
     const j=JSON.parse(localStorage.getItem('bb_session')||'{}');
-    session.slowMode = !!j.slowMode;
-    els.speedBtn.textContent = session.slowMode ? 'Disable Slow Mode' : 'Enable Slow Mode';
     if(j && j.started){
       session.started = true;
       session.t0 = j.t0;
@@ -375,11 +363,7 @@ function startClock(){
   session.clockTick = setInterval(update, 1000);
 }
 function stopClock(){ if(session.clockTick) clearInterval(session.clockTick); session.clockTick=null; }
-function startRecalc(){
-  if(session.tick) clearInterval(session.tick);
-  const interval = session.slowMode ? SLOW_INTERVAL : FAST_INTERVAL;
-  session.tick = setInterval(recalc, interval);
-}
+function startRecalc(){ if(session.tick) clearInterval(session.tick); session.tick = setInterval(recalc, 1000); }
 function stopRecalc(){ if(session.tick) clearInterval(session.tick); session.tick=null; }
 
 document.querySelectorAll('button.drink').forEach(btn=>{
@@ -411,12 +395,6 @@ els.endBtn.addEventListener('click', ()=>{
   showSessionModal();
 });
 els.shareBtn.addEventListener('click', shareApp);
-els.speedBtn.addEventListener('click', ()=>{
-  session.slowMode = !session.slowMode;
-  els.speedBtn.textContent = session.slowMode ? 'Disable Slow Mode' : 'Enable Slow Mode';
-  if(session.started) startRecalc();
-  saveSession();
-});
 els.copyLinkBtn.addEventListener('click', async ()=>{
   try{ await navigator.clipboard.writeText(els.shareUrl.value); toast('Link copied!'); }catch{}
 });
